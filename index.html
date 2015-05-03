@@ -4,16 +4,23 @@
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+
+  <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="css/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="css/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="css/print.css" media="print">
+
 
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <title>Trizbort by JasonLautzenheiser</title>
+    <title>Trizbort by Jason Lautzenheiser</title>
   </head>
 
   <body>
@@ -21,35 +28,111 @@
       <div class="inner">
         <h1>Trizbort</h1>
         <h2>The Interactive Fiction Mapper</h2>
-        <a href="https://github.com/JasonLautzenheiser/trizbort" class="button"><small>View project on</small> GitHub</a>
+        <div class="float"><a href="https://github.com/JasonLautzenheiser/trizbort" class="btn btn-info btn-lg "><small>View project on</small> GitHub</a></div>
       </div>
     </header>
 
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <h3>
-<a id="welcome-to-the-trizbort-project" class="anchor" href="#welcome-to-the-trizbort-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to the Trizbort project.</h3>
+          <h2>
+            <a id="welcome-to-the-trizbort-project" class="anchor" href="#welcome-to-the-trizbort-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to the Trizbort project.
+          </h2>
 
-<p>Trizbort is a simple tool used to create interactive fiction.  First developed by <a href="http://trizbort.genstein.net">genstein</a> back in 2010, he continued to update until March, 2013 when he open-sourced the code.  Fast forward to 2015 when I picked up the development and along with Andrew Schultz (focused on documentation and testing) we continue to improve this great software.</p>
+            <p>Trizbort is a simple tool used to create interactive fiction.  First developed by <a href="http://trizbort.genstein.net">genstein</a> back in 2010, he continued to update until March, 2013 when he open-sourced the code.
+                Fast forward to 2015 when I picked up the development and along with Andrew Schultz (focused on documentation and testing) we continue to improve this great software.
+                Follow our blog for announcements and updates (<a target="_blank" href="https://lautzofif.wordpress.com/tag/trizbort/">https://lautzofif.wordpress.com/tag/trizbort/</a>).
+            </p>
 
-<a id="recent-releases" class="anchor" href="#recent-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recent Releases</h3>
+            <h2>
+                <a id="recent-releases" class="anchor" href="#recent-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recent Releases
+            </h2>
+
+            <h4>
+                Current Release - 1.5.8.7 - April Release (4/20/2015) - <a class="btn" href="https://github.com/JasonLautzenheiser/trizbort/releases/tag/1.5.8.7">Download Latest</a>
+            </h4>
+            <p>This release focuses on a few new features, bug fixes and now includes documentation. <a target="_blank" href="https://lautzofif.wordpress.com/2015/04/20/trizbort-1-5-8-7-released/">Announcement</a>. </p>
+            <ul>
+                <li>Undo is now handled by automapping (Mr Shifty)</li>
+                <li>Connections can now have individual colors.</li>
+                <li>Rooms can now have individual border styles.</li>
+                <li>No border is now a valid room border style.</li>
+            </ul>
+
+            <h4>
+                <a id="previous-releases" class="anchor" href="#recent-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>1.5.8.5 - Public Release (3/31/2015)
+            </h4>
+
+            <p>Version 1.5.8.5 focused on adding a few features and fixing up a few bugs that have been around for quite a while.  <a target="_blank" href="https://lautzofif.wordpress.com/2015/03/31/trizbort-1585-update/">Announcement post</a>.</p>
+            <ul>
+                <li>Added zoom control in status bar for finer tuning of zoom level of map.</li>
+                <li>Fixed long standing issue where white could not be chosen as a valid color.</li>
+                <li>Added some additional 2nd fill color styles for completeness.</li>
+                <li>Can quickly insert a room between two other rooms</li>
+                <li>Added subtitles to rooms.</li>
+                <li>In/Out and Up/Down now export to proper source code.</li>
+                <li>Smart Save is a bit more customizable now.</li>
+                <li>Fixed F11 crash when automapping is turned off.</li>
+                <li>Many UI usability improvements and bug fixes.</li>
+            </ul>
+
+            <h4>
+            <a id="previous-releases" class="anchor" href="#recent-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>1.5.7.1 - Public Release (3/6/2015)
+        </h4>
+
+            <p>This version focused mainly on fixing some bugs and making the app a bit more user friendly for keyboard users.  There were a few new features that I think are pretty nifty. <a target="_blank" href="https://lautzofif.wordpress.com/2015/03/06/trizbort-1-5-7-1-released/">Announcement post</a>.</p>
+
+            <h6>Features</h6>
+            <ul>
+                <li>Improved the coloring of selected elements so they are much more noticeable</li>
+                <li>Ctrl-Shift-A to select all rooms in the selected region.</li>
+                <li>Ctrl-Alt-Arrow to resize selected room.</li>
+                <li>Arrow keys will now move elements if they are selected instead of always moving the map.</li>
+                <li>Improve context menus.</li>
+            </ul>
+
+            <h6>Bugs</h6>
+            <ul>
+                <li>Enhanced region naming to disallow some characters that would cause issues with exported source code.</li>
+                <li>Cleaned up code export to prevent generation of bad source.</li>
+            </ul>
+
+            <h4>
+                <a id="previous-releases" class="anchor" href="#recent-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>1.5.6.3 - Initial Public Release (2/20/2015)
+            </h4>
+
+            <p>This was my initial release based on the code from the last release from Genstein.  <a target="_blank" href="https://lautzofif.wordpress.com/2015/02/20/trizbort-update/">Announcement post</a>. </p>
+
+            <h6>Features</h6>
+            <ul>
+                <li>Copy / Paste of elements (Tymian branch)</li>
+                <li>Rooms can have their own color (Tymian branch)</li>
+                <li>Can split rooms with a color 50/50 (Tymian branch</li>
+                <li>App settings dialog from the Tustin2121 branch</li>
+                <li>Smart save feature - save of PDF and image in one click.</li>
+                <li>Regions can be added to a room, regions can have color so all rooms of a region can have same style.</li>
+                <li>Added context menu and tooltip displays.</li>
+                <li>Ctrl-Arrow while in a room will create a room in that direction.</li>
+                <li>Lots of bug fixes and usability improvements.</li>
+            </ul>
 
         </section>
 
         <aside id="sidebar">
-          <a href="https://github.com/JasonLautzenheiser/trizbort/zipball/master" class="button">
+          <p>Read the <a href="Docs/index.shtml">Trizbort documentation</a>.</p>
+
+          <a href="https://github.com/JasonLautzenheiser/trizbort/zipball/master" class="btn btn-info btn-lg">
             <small>Download</small>
             .zip file
           </a>
-          <a href="https://github.com/JasonLautzenheiser/trizbort/tarball/master" class="button">
+            <br/>
+            <br/>
+          <a href="https://github.com/JasonLautzenheiser/trizbort/tarball/master" class="btn btn-info btn-lg">
             <small>Download</small>
             .tar.gz file
           </a>
 
           <p class="repo-owner"><a href="https://github.com/JasonLautzenheiser/trizbort"></a> is maintained by <a href="https://github.com/JasonLautzenheiser">JasonLautzenheiser</a>.</p>
-
-          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
         </aside>
       </div>
     </div>
