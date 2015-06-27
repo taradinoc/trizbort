@@ -1,11 +1,9 @@
-trizbort
+Trizbort - v2
 ========
 
-This is the source code to Trizbort, the Interactive Fiction Mapper.
+This is the source code to Version 2 - Trizbort , the Interactive Fiction Mapper.  Version 2 is a major rewrite of Trizbort originally created by Genstein.  Version 2 is based on the work of Genstein but is a complete rewrite (borrowing heavily from ideas and source from v1)
 
 See LICENSE.txt for copyright and license information.
-
-This software uses PdfSharp, copyright (c) 2005-2007 empira Software GmbH, Cologne (Germany). See PdfSharp.License.txt.
 
 For the latest official Trizbort version:
 
