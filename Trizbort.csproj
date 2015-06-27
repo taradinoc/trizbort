@@ -7,7 +7,7 @@
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{F462E085-AFBE-46EC-936E-AEF63C83A796}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Trizbort</RootNamespace>
     <AssemblyName>Trizbort</AssemblyName>
@@ -70,15 +70,16 @@
   <PropertyGroup>
     <SignManifests>false</SignManifests>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>Trizbort.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DevComponents.DotNetBar2, Version=9.5.0.6, Culture=neutral, PublicKeyToken=7eb7c3a35b91de04, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\DevComponents.DotNetBar2.dll</HintPath>
+    <Reference Include="CommandLine, Version=1.9.71.2, Culture=neutral, PublicKeyToken=de6f01bd326f8c32, processorArchitecture=MSIL">
+      <HintPath>packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="PdfSharp, Version=1.32.3057.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\PdfSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -87,164 +88,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AboutDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AboutDialog.Designer.cs">
-      <DependentUpon>AboutDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="AppSettingsDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AppSettingsDialog.designer.cs">
-      <DependentUpon>AppSettingsDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Automap.cs" />
-    <Compile Include="AutomapBar.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="AutomapBar.Designer.cs">
-      <DependentUpon>AutomapBar.cs</DependentUpon>
-    </Compile>
-    <Compile Include="AutomapDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AutomapDialog.Designer.cs">
-      <DependentUpon>AutomapDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="AutomapSettings.cs" />
-    <Compile Include="BorderDashStyle.cs" />
-    <Compile Include="Canvas.Automap.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Canvas.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Canvas.Designer.cs">
-      <DependentUpon>Canvas.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ColorExtensions.cs" />
-    <Compile Include="Colors.cs" />
-    <Compile Include="CompassPoint.cs" />
-    <Compile Include="Connection.cs" />
-    <Compile Include="ConnectionPropertiesDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ConnectionPropertiesDialog.Designer.cs">
-      <DependentUpon>ConnectionPropertiesDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="DisambiguateRoomsDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DisambiguateRoomsDialog.Designer.cs">
-      <DependentUpon>DisambiguateRoomsDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="DrawingContext.cs" />
-    <Compile Include="Element.cs" />
-    <Compile Include="BoundList.cs" />
-    <Compile Include="Export\CodeExporter.cs" />
-    <Compile Include="Export\Inform6Exporter.cs" />
-    <Compile Include="Export\TadsExporter.cs" />
-    <Compile Include="IAutomapCanvas.cs" />
-    <Compile Include="IMoveable.cs" />
-    <Compile Include="Export\Inform7Exporter.cs" />
-    <Compile Include="ISizeable.cs" />
-    <Compile Include="LineSegment.cs" />
-    <Compile Include="MapStatistics.cs" />
-    <Compile Include="MapStatisticsView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MapStatisticsView.Designer.cs">
-      <DependentUpon>MapStatisticsView.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Minimap.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Minimap.Designer.cs">
-      <DependentUpon>Minimap.cs</DependentUpon>
-    </Compile>
-    <Compile Include="MoveablePort.cs" />
-    <Compile Include="MruList.cs" />
-    <Compile Include="NewVersionDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="NewVersionDialog.Designer.cs">
-      <DependentUpon>NewVersionDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Numeric.cs" />
-    <Compile Include="PathHelper.cs" />
-    <Compile Include="Port.cs" />
-    <Compile Include="Rect.cs" />
-    <Compile Include="Region.cs" />
-    <Compile Include="RegionSettings.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="RegionSettings.Designer.cs">
-      <DependentUpon>RegionSettings.cs</DependentUpon>
-    </Compile>
-    <Compile Include="RoomExtensions.cs" />
-    <Compile Include="Smoothing.cs" />
-    <Compile Include="TextBlock.cs" />
-    <Compile Include="TrizbortExtensions.cs" />
-    <Compile Include="Vector.cs" />
-    <Compile Include="Vertex.cs" />
-    <Compile Include="Events.cs" />
-    <Compile Include="MainForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MainForm.Designer.cs">
-      <DependentUpon>MainForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Palette.cs" />
+    <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Project.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="AboutDialog.resx">
-      <DependentUpon>AboutDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="AppSettingsDialog.resx">
-      <DependentUpon>AppSettingsDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="AutomapBar.resx">
-      <DependentUpon>AutomapBar.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="AutomapDialog.resx">
-      <DependentUpon>AutomapDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Canvas.resx">
-      <DependentUpon>Canvas.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ConnectionPropertiesDialog.resx">
-      <DependentUpon>ConnectionPropertiesDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DisambiguateRoomsDialog.resx">
-      <DependentUpon>DisambiguateRoomsDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MainForm.resx">
-      <DependentUpon>MainForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MapStatisticsView.resx">
-      <DependentUpon>MapStatisticsView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Minimap.resx">
-      <DependentUpon>Minimap.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="NewVersionDialog.resx">
-      <DependentUpon>NewVersionDialog.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="RegionSettings.resx">
-      <DependentUpon>RegionSettings.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="RoomPropertiesDialog.resx">
-      <DependentUpon>RoomPropertiesDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SettingsDialog.resx">
-      <DependentUpon>SettingsDialog.cs</DependentUpon>
     </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -252,29 +102,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
-    <Compile Include="Drawing.cs" />
-    <Compile Include="ResizeHandle.cs" />
-    <Compile Include="Room.cs" />
-    <Compile Include="RoomPropertiesDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="RoomPropertiesDialog.Designer.cs">
-      <DependentUpon>RoomPropertiesDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Settings.cs" />
-    <Compile Include="SettingsDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="SettingsDialog.Designer.cs">
-      <DependentUpon>SettingsDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="StringFormats.cs" />
-    <Compile Include="Depth.cs" />
-    <Compile Include="XmlAttributeReader.cs" />
-    <Compile Include="XmlElementReader.cs" />
-    <Compile Include="XmlScribe.cs" />
     <None Include="packages.config" />
-    <None Include="Trizbort_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Images\Arrow.png" />
@@ -289,9 +117,6 @@
     <Content Include="Images\ToolStripBackground.png" />
     <Content Include="Images\ToolStripBackground2.png" />
     <Content Include="Map.ico" />
-    <Content Include="Revisions.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Setup\Wizard4.bmp" />
   </ItemGroup>
   <ItemGroup>
@@ -315,6 +140,9 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Export\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
