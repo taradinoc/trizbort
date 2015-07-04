@@ -23,35 +23,45 @@
 */
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Trizbort
 {
   internal static class Program
   {
-//    public static MainForm MainForm { get; private set; }
-
-    /// <summary>
-    ///   The main entry point for the application.
-    /// </summary>
     [STAThread]
     public static void Main(string[] args)
     {
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
 
+
+      List<int> values = new List<int> {10, 20, 25};
+      List<string> strings = new List<string> {"a", "b", "c", "d", "e", "f"};
+
+      string newString = string.Join(",", values);
+//      string newString = string.Join(",", values.ToArray());
+
+      string delimited = string.Join(",", strings.ToArray(), 2, 2);
       var options = new Options();
       if (CommandLine.Parser.Default.ParseArguments(args, options))
       {
-        if (options.TrizbortFile != string.Empty) Console.WriteLine("Trizbort: {0}",options.TrizbortFile);
+        if (options.TrizbortFile != string.Empty) Console.WriteLine("Trizbort: {0}", options.TrizbortFile);
       }
+      else
+      {
+        loadMainForm();
+      }
+    }
 
-//      using (var form = new MainForm())
-//      {
-//        MainForm = form;
-//        Application.Run(form);
-//        MainForm = null;
-//      }
+    private static void loadMainForm()
+    {
+      using (var form = new MainForm())
+      {
+        Application.Run(form);
+      }
     }
   }
 }

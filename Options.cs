@@ -11,9 +11,6 @@ namespace Trizbort
     [Option("script", HelpText = "Load specified script file and run.")]
     public string ScriptFile { get; set; } = string.Empty;
 
-//    [ParserState]
-//    public IParserState ParserState { get; }
-
     [HelpOption]
     public string GetUsage()
     {
