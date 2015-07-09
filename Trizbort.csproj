@@ -150,6 +150,7 @@
     <Compile Include="Export\Inform7Exporter.cs" />
     <Compile Include="ISizeable.cs" />
     <Compile Include="LineSegment.cs" />
+    <Compile Include="Map.cs" />
     <Compile Include="MapStatistics.cs" />
     <Compile Include="MapStatisticsView.cs">
       <SubType>Form</SubType>

@@ -23,87 +23,71 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.Drawing;
 
 namespace Trizbort
 {
-    /// <summary>
-    /// A vertex on a connection.
-    /// </summary>
-    /// <remarks>
-    /// Connections are multi-segment lines between vertices.
-    /// Each vertex is fixed either to a point in space or 
-    /// to an element's port.
-    /// </remarks>
-    internal class Vertex
+  /// <summary>
+  ///   A vertex on a connection.
+  /// </summary>
+  /// <remarks>
+  ///   Connections are multi-segment lines between vertices.
+  ///   Each vertex is fixed either to a point in space or
+  ///   to an element's port.
+  /// </remarks>
+  public class Vertex
+  {
+    private Port mPort;
+    private Vector mPosition;
+
+    public Vertex()
     {
-        public Vertex()
-        {
-        }
-
-        public Vertex(Port port)
-        {
-            Port = port;
-        }
-
-        public Vertex(Vector position)
-        {
-            Position = position;
-        }
-
-        public Connection Connection
-        {
-            get; set;
-        }
-
-        public Vector Position
-        {
-            get
-            {
-                if (m_port != null)
-                {
-                    return m_port.Position;
-                }
-                return m_position; 
-            }
-            set
-            {
-                if (m_position != value)
-                {
-                    m_position = value;
-                    m_port = null;
-                    RaiseChanged();
-                }
-            }
-        }
-
-        public Port Port
-        {
-            get { return m_port; }
-            set
-            {
-                if (m_port != value)
-                {
-                    m_position = Vector.Zero;
-                    m_port = value;
-                    RaiseChanged();
-                }
-            }
-        }
-
-        public event EventHandler Changed;
-
-        private void RaiseChanged()
-        {
-            var changed = Changed;
-            if (changed != null)
-            {
-                changed(this, EventArgs.Empty);
-            }
-        }
-
-        private Vector m_position;
-        private Port m_port;
     }
+
+    public Vertex(Port port)
+    {
+      Port = port;
+    }
+
+    public Vertex(Vector position)
+    {
+      Position = position;
+    }
+
+    public Connection Connection { get; set; }
+
+    public Vector Position
+    {
+      get
+      {
+        return mPort?.Position ?? mPosition;
+      }
+      set
+      {
+        if (mPosition == value) return;
+        mPosition = value;
+        mPort = null;
+        raiseChanged();
+      }
+    }
+
+    public Port Port
+    {
+      get { return mPort; }
+      set
+      {
+        if (mPort == value) return;
+        mPosition = Vector.Zero;
+        mPort = value;
+        raiseChanged();
+      }
+    }
+
+    public event EventHandler Changed;
+
+    private void raiseChanged()
+    {
+      var changed = Changed;
+      changed?.Invoke(this, EventArgs.Empty);
+    }
+  }
 }

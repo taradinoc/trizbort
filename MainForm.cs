@@ -33,7 +33,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using DevComponents.DotNetBar;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using Trizbort.Export;
@@ -44,36 +43,75 @@ namespace Trizbort
   internal partial class MainForm : Form
   {
     private static readonly TimeSpan IdleProcessingEveryNSeconds = TimeSpan.FromSeconds(0.2);
-    private readonly string m_caption;
-    public Canvas Canvas;
-    private DateTime m_lastUpdateUITime;
+    private readonly string mCaption;
+    private DateTime mLastUpdateUiTime;
+    private Map currentMap;
+
 
     public MainForm()
     {
       InitializeComponent();
 
-      m_caption = Text;
+      mCaption = Text;
 
-      Application.Idle += OnIdle;
-      m_lastUpdateUITime = DateTime.MinValue;
+      Application.Idle += onIdle;
+      mLastUpdateUiTime = DateTime.MinValue;
 
       m_automapBar.StopClick += onMAutomapBarOnStopClick;
-      Canvas.ZoomChanged += adjustZoomed;
+
+      var map = createNewMap();
+
+      currentMap = map;
+
+      addCanvasToTab(tabPage1, map);
+      tabPage1.Controls.Add(map.Canvas);
+
+      tabPage1.Text = map.Name;
+
+//      Canvas.ZoomChanged += adjustZoomed;
+//      Canvas.Map = new Map() {Name = "Default Map"};
+//      Project.Maps.Add(Canvas.Map);
     }
 
-    private void adjustZoomed(object sender, EventArgs e)
+    private void addCanvasToTab(TabPage tabPage, Map map)
     {
-      txtZoom.Value = (int)(Canvas.ZoomFactor*100.0f);
+      map.Canvas.Dock = DockStyle.Fill;
+      map.Canvas.MinimapVisible = true;
+      map.Canvas.BackColor = Color.White;
+      tabPage.Controls.Add(map.Canvas);
+    }
+
+    private Map createNewMap()
+    {
+      // setup initial tab and canvas
+      var map = new Map
+      {
+        Name = "New Map"
+      };
+
+      map.Canvas = new Canvas(map);
+
+      map.Canvas.ZoomChanged += adjustZoomed;
+      Project.Maps.Add(map);
+      return map;
+    }
+
+    public override sealed string Text { get { return base.Text; }
+      set { base.Text = value; } }
+
+    private  void adjustZoomed(object sender, EventArgs e)
+    {
+      txtZoom.Value = (int) (currentMap.Canvas.ZoomFactor*100.0f);
     }
 
     private void onMAutomapBarOnStopClick(object sender, EventArgs e)
     {
-      Canvas.StopAutomapping();
+      currentMap.Canvas.StopAutomapping();
     }
 
     private void MainForm_Load(object sender, EventArgs e)
     {
-      Canvas.MinimapVisible = Settings.ShowMiniMap;
+      currentMap.Canvas.MinimapVisible = Settings.ShowMiniMap;
 
       var args = Environment.GetCommandLineArgs();
       if (args.Length > 1 && File.Exists(args[1]))
@@ -84,6 +122,7 @@ namespace Trizbort
         }
         catch (Exception)
         {
+          // ignored
         }
       }
       NewVersionDialog.CheckForUpdatesAsync(this, false);
@@ -91,7 +130,7 @@ namespace Trizbort
 
     private void FileNewMenuItem_Click(object sender, EventArgs e)
     {
-      if (!CheckLoseProject())
+      if (!checkLoseProject())
         return;
 
       Project.Current = new Project();
@@ -100,29 +139,29 @@ namespace Trizbort
 
     protected override void OnClosing(CancelEventArgs e)
     {
-      if (!CheckLoseProject())
+      if (!checkLoseProject())
       {
         e.Cancel = true;
         return;
       }
 
       Settings.SaveApplicationSettings();
-      Canvas.StopAutomapping();
+      currentMap.Canvas.StopAutomapping();
 
       base.OnClosing(e);
     }
 
-    private bool CheckLoseProject()
+    private bool checkLoseProject()
     {
       if (Project.Current.IsDirty)
       {
         // see if the user would like to save
-        var result = MessageBox.Show(this, string.Format("Do you want to save changes to {0}?", Project.Current.Name), Text, MessageBoxButtons.YesNoCancel);
+        var result = MessageBox.Show(this, $"Do you want to save changes to {Project.Current.Name}?", Text, MessageBoxButtons.YesNoCancel);
         switch (result)
         {
           case DialogResult.Yes:
             // user would like to save
-            if (!SaveProject())
+            if (!saveProject())
             {
               // didn't actually save; treat as cancel
               return false;
@@ -145,41 +184,36 @@ namespace Trizbort
       return true;
     }
 
-    private bool OpenProject()
+    private void OpenProject()
     {
-      if (!CheckLoseProject())
-        return false;
+      if (!checkLoseProject())
+        return;
 
       using (var dialog = new OpenFileDialog())
       {
         dialog.InitialDirectory = PathHelper.SafeGetDirectoryName(Settings.LastProjectFileName);
-        dialog.Filter = string.Format("{0}|All Files|*.*||", Project.FilterString);
+        dialog.Filter = $"{Project.FilterString}|All Files|*.*||";
         if (dialog.ShowDialog() == DialogResult.OK)
         {
           Settings.LastProjectFileName = dialog.FileName;
-          return OpenProject(dialog.FileName);
+          OpenProject(dialog.FileName);
         }
       }
-
-      return false;
     }
 
-    private bool OpenProject(string fileName)
+    private void OpenProject(string fileName)
     {
-      var project = new Project();
-      project.FileName = fileName;
+      var project = new Project {FileName = fileName};
       if (project.Load())
       {
         Project.Current = project;
         //AboutMap();
         Settings.RecentProjects.Add(fileName);
-        return true;
+        return;
       }
-
-      return false;
     }
 
-    private void AboutMap()
+    private void aboutMap()
     {
       var project = Project.Current;
       if (!string.IsNullOrEmpty(project.Title) || !string.IsNullOrEmpty(project.Author) || !string.IsNullOrEmpty(project.Description))
@@ -195,7 +229,7 @@ namespace Trizbort
           {
             builder.AppendLine();
           }
-          builder.AppendLine(string.Format("by {0}", project.Author));
+          builder.AppendLine($"by {project.Author}");
         }
         if (!string.IsNullOrEmpty(project.Description))
         {
@@ -209,11 +243,11 @@ namespace Trizbort
       }
     }
 
-    private bool SaveProject()
+    private bool saveProject()
     {
       if (!Project.Current.HasFileName)
       {
-        return SaveAsProject();
+        return saveAsProject();
       }
 
       if (Project.Current.Save())
@@ -224,7 +258,7 @@ namespace Trizbort
       return false;
     }
 
-    private bool SaveAsProject()
+    private bool saveAsProject()
     {
       using (var dialog = new SaveFileDialog())
       {
@@ -236,7 +270,7 @@ namespace Trizbort
         {
           dialog.InitialDirectory = PathHelper.SafeGetDirectoryName(Settings.LastProjectFileName);
         }
-        dialog.Filter = string.Format("{0}|All Files|*.*||", Project.FilterString);
+        dialog.Filter = $"{Project.FilterString}|All Files|*.*||";
         if (dialog.ShowDialog() == DialogResult.OK)
         {
           Settings.LastProjectFileName = dialog.FileName;
@@ -259,12 +293,12 @@ namespace Trizbort
 
     private void FileSaveMenuItem_Click(object sender, EventArgs e)
     {
-      SaveProject();
+      saveProject();
     }
 
     private void FileSaveAsMenuItem_Click(object sender, EventArgs e)
     {
-      SaveAsProject();
+      saveAsProject();
     }
 
     private void smartSaveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -286,7 +320,7 @@ namespace Trizbort
       {
         if (MessageBox.Show("Your project needs to be saved before we can do a SmartSave.  Would you like to save the project now?", "Save Project?", MessageBoxButtons.YesNo,MessageBoxIcon.Question) == DialogResult.Yes)
         {
-          SaveProject();
+          saveProject();
           mSaved = true;
         }
       }
@@ -307,7 +341,7 @@ namespace Trizbort
             sPDFFile = exportPDF();
             if (sPDFFile == string.Empty)
             {
-              MessageBox.Show(string.Format("There was an error saving the PDF file during the SmartSave.  Please make sure the PDF is not already opened."), "Smart Save", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+              MessageBox.Show("There was an error saving the PDF file during the SmartSave.  Please make sure the PDF is not already opened.", "Smart Save", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
               bSaveError = true;
             }
           }
@@ -317,7 +351,7 @@ namespace Trizbort
             sImageFile = exportImage();
             if (sImageFile == string.Empty)
             {
-              MessageBox.Show(string.Format("There was an error saving the Image file during the SmartSave.  Please make sure the Image is not already opened."), "Smart Save", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+              MessageBox.Show("There was an error saving the Image file during the SmartSave.  Please make sure the Image is not already opened.", "Smart Save", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
               bSaveError = true;
             }
 
@@ -328,14 +362,14 @@ namespace Trizbort
             string sText = string.Empty;
             if (Settings.SaveToPDF)
             {
-              sText += string.Format("PDF file has been saved to {0}", sPDFFile);
+              sText += $"PDF file has been saved to {sPDFFile}";
             }
 
             if (Settings.SaveToImage)
             {
               if (sText != string.Empty)
                 sText += Environment.NewLine;
-              sText += string.Format("Image file has been saved to {0}", sImageFile);
+              sText += $"Image file has been saved to {sImageFile}";
             }
 
             MessageBox.Show(sText, "Smart Save", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -425,7 +459,7 @@ namespace Trizbort
           }
           catch (Exception ex)
           {
-            MessageBox.Show(Program.MainForm, string.Format("There was a problem exporting the map:\n\n{0}", ex.Message), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(Program.MainForm, $"There was a problem exporting the map:\n\n{ex.Message}", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
           }
         }
       }
@@ -443,12 +477,12 @@ namespace Trizbort
       doc.Info.Subject = Project.Current.Description;
       var page = doc.AddPage();
 
-      var size = Canvas.ComputeCanvasBounds(true).Size;
+      var size = currentMap.Canvas.ComputeCanvasBounds(true).Size;
       page.Width = new XUnit(size.X);
       page.Height = new XUnit(size.Y);
       using (var graphics = XGraphics.FromPdfPage(page))
       {
-        Canvas.Draw(graphics, true, size.X, size.Y);
+        currentMap.Canvas.Draw(graphics, true, size.X, size.Y);
       }
 
       doc.Save(fileName);
@@ -488,16 +522,16 @@ namespace Trizbort
         format = ImageFormat.Emf;
       }
 
-      var size = Canvas.ComputeCanvasBounds(true).Size*(Settings.SaveAt100 ? 1.0f : Canvas.ZoomFactor);
+      var size = currentMap.Canvas.ComputeCanvasBounds(true).Size*(Settings.SaveAt100 ? 1.0f : currentMap.Canvas.ZoomFactor);
       size.X = Numeric.Clamp(size.X, 16, 8192);
       size.Y = Numeric.Clamp(size.Y, 16, 8192);
 
       try
       {
-        if (format == ImageFormat.Emf)
+        if (Equals(format, ImageFormat.Emf))
         {
           // export as a metafile
-          using (var nativeGraphics = Graphics.FromHwnd(Canvas.Handle))
+          using (var nativeGraphics = Graphics.FromHwnd(currentMap.Canvas.Handle))
           {
             using (var stream = new MemoryStream())
             {
@@ -510,7 +544,7 @@ namespace Trizbort
                   {
                     using (var graphics = XGraphics.FromGraphics(imageGraphics, new XSize(size.X, size.Y)))
                     {
-                      Canvas.Draw(graphics, true, size.X, size.Y);
+                      currentMap.Canvas.Draw(graphics, true, size.X, size.Y);
                     }
                   }
                   var handle = metafile.GetHenhmetafile();
@@ -534,7 +568,7 @@ namespace Trizbort
             {
               using (var graphics = XGraphics.FromGraphics(imageGraphics, new XSize(size.X, size.Y)))
               {
-                Canvas.Draw(graphics, true, size.X, size.Y);
+                currentMap.Canvas.Draw(graphics, true, size.X, size.Y);
               }
             }
             bitmap.Save(fileName, format);
@@ -543,7 +577,7 @@ namespace Trizbort
       }
       catch (Exception ex)
       {
-        MessageBox.Show(Program.MainForm, string.Format("There was a problem exporting the map:\n\n{0}", ex.Message),
+        MessageBox.Show(Program.MainForm, $"There was a problem exporting the map:\n\n{ex.Message}",
           Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
       }
     }
@@ -615,7 +649,7 @@ namespace Trizbort
             {
               filterString += "|";
             }
-            filterString += string.Format("{0}|*{1}", filter.Key, filter.Value);
+            filterString += $"{filter.Key}|*{filter.Value}";
           }
 
           if (!string.IsNullOrEmpty(filterString))
@@ -650,7 +684,7 @@ namespace Trizbort
             }
             catch (Exception ex)
             {
-              MessageBox.Show(Program.MainForm, string.Format("There was a problem exporting the map:\n\n{0}", ex.Message), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+              MessageBox.Show(Program.MainForm, $"There was a problem exporting the map:\n\n{ex.Message}", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
           }
         }
@@ -666,143 +700,143 @@ namespace Trizbort
 
     private void EditAddRoomMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.AddRoom(false);
+      currentMap.Canvas.AddRoom(false);
     }
 
     private void EditDeleteMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.DeleteSelection();
+      currentMap.Canvas.DeleteSelection();
     }
 
     private void EditPropertiesMenuItem_Click(object sender, EventArgs e)
     {
-      if (Canvas.HasSingleSelectedElement && Canvas.SelectedElement.HasDialog)
+      if (currentMap.Canvas.HasSingleSelectedElement && currentMap.Canvas.SelectedElement.HasDialog)
       {
-        Canvas.SelectedElement.ShowDialog();
+        currentMap.Canvas.SelectedElement.ShowDialog();
       }
     }
 
     private void PlainLinesMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ApplyNewPlainConnectionSettings();
+      currentMap.Canvas.ApplyNewPlainConnectionSettings();
     }
 
     private void ToggleDottedLines_Click(object sender, EventArgs e)
     {
-      switch (Canvas.NewConnectionStyle)
+      switch (currentMap.Canvas.NewConnectionStyle)
       {
         case ConnectionStyle.Solid:
-          Canvas.NewConnectionStyle = ConnectionStyle.Dashed;
+          currentMap.Canvas.NewConnectionStyle = ConnectionStyle.Dashed;
           break;
         case ConnectionStyle.Dashed:
-          Canvas.NewConnectionStyle = ConnectionStyle.Solid;
+          currentMap.Canvas.NewConnectionStyle = ConnectionStyle.Solid;
           break;
       }
-      Canvas.ApplyConnectionStyle(Canvas.NewConnectionStyle);
+      currentMap.Canvas.ApplyConnectionStyle(currentMap.Canvas.NewConnectionStyle);
     }
 
     private void ToggleDirectionalLines_Click(object sender, EventArgs e)
     {
-      switch (Canvas.NewConnectionFlow)
+      switch (currentMap.Canvas.NewConnectionFlow)
       {
         case ConnectionFlow.TwoWay:
-          Canvas.NewConnectionFlow = ConnectionFlow.OneWay;
+          currentMap.Canvas.NewConnectionFlow = ConnectionFlow.OneWay;
           break;
         case ConnectionFlow.OneWay:
-          Canvas.NewConnectionFlow = ConnectionFlow.TwoWay;
+          currentMap.Canvas.NewConnectionFlow = ConnectionFlow.TwoWay;
           break;
       }
-      Canvas.ApplyConnectionFlow(Canvas.NewConnectionFlow);
+      currentMap.Canvas.ApplyConnectionFlow(currentMap.Canvas.NewConnectionFlow);
     }
 
     private void UpLinesMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.NewConnectionLabel = ConnectionLabel.Up;
-      Canvas.ApplyConnectionLabel(Canvas.NewConnectionLabel);
+      currentMap.Canvas.NewConnectionLabel = ConnectionLabel.Up;
+      currentMap.Canvas.ApplyConnectionLabel(currentMap.Canvas.NewConnectionLabel);
     }
 
     private void DownLinesMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.NewConnectionLabel = ConnectionLabel.Down;
-      Canvas.ApplyConnectionLabel(Canvas.NewConnectionLabel);
+      currentMap.Canvas.NewConnectionLabel = ConnectionLabel.Down;
+      currentMap.Canvas.ApplyConnectionLabel(currentMap.Canvas.NewConnectionLabel);
     }
 
     private void InLinesMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.NewConnectionLabel = ConnectionLabel.In;
-      Canvas.ApplyConnectionLabel(Canvas.NewConnectionLabel);
+      currentMap.Canvas.NewConnectionLabel = ConnectionLabel.In;
+      currentMap.Canvas.ApplyConnectionLabel(currentMap.Canvas.NewConnectionLabel);
     }
 
     private void OutLinesMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.NewConnectionLabel = ConnectionLabel.Out;
-      Canvas.ApplyConnectionLabel(Canvas.NewConnectionLabel);
+      currentMap.Canvas.NewConnectionLabel = ConnectionLabel.Out;
+      currentMap.Canvas.ApplyConnectionLabel(currentMap.Canvas.NewConnectionLabel);
     }
 
     private void ReverseLineMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ReverseLineDirection();
+      currentMap.Canvas.ReverseLineDirection();
     }
 
-    private void OnIdle(object sender, EventArgs e)
+    private void onIdle(object sender, EventArgs e)
     {
       var now = DateTime.Now;
-      if (now - m_lastUpdateUITime > IdleProcessingEveryNSeconds)
+      if (now - mLastUpdateUiTime > IdleProcessingEveryNSeconds)
       {
-        m_lastUpdateUITime = now;
-        UpdateCommandUI();
+        mLastUpdateUiTime = now;
+        updateCommandUi();
       }
     }
 
-    private void UpdateCommandUI()
+    private void updateCommandUi()
     {
       // caption
-      Text = string.Format("{0}{1} - {2} - {3}", Project.Current.Name, Project.Current.IsDirty ? "*" : string.Empty, m_caption, Application.ProductVersion);
+      Text = $"{Project.Current.Name}{(Project.Current.IsDirty ? "*" : string.Empty)} - {mCaption} - {Application.ProductVersion}";
 
       // line drawing options
-      m_toggleDottedLinesButton.Checked = Canvas.NewConnectionStyle == ConnectionStyle.Dashed;
+      m_toggleDottedLinesButton.Checked = currentMap.Canvas.NewConnectionStyle == ConnectionStyle.Dashed;
       m_toggleDottedLinesMenuItem.Checked = m_toggleDottedLinesButton.Checked;
-      m_toggleDirectionalLinesButton.Checked = Canvas.NewConnectionFlow == ConnectionFlow.OneWay;
+      m_toggleDirectionalLinesButton.Checked = currentMap.Canvas.NewConnectionFlow == ConnectionFlow.OneWay;
       m_toggleDirectionalLinesMenuItem.Checked = m_toggleDirectionalLinesButton.Checked;
-      m_plainLinesMenuItem.Checked = !m_toggleDirectionalLinesMenuItem.Checked && !m_toggleDottedLinesMenuItem.Checked && Canvas.NewConnectionLabel == ConnectionLabel.None;
-      m_upLinesMenuItem.Checked = Canvas.NewConnectionLabel == ConnectionLabel.Up;
-      m_downLinesMenuItem.Checked = Canvas.NewConnectionLabel == ConnectionLabel.Down;
-      m_inLinesMenuItem.Checked = Canvas.NewConnectionLabel == ConnectionLabel.In;
-      m_outLinesMenuItem.Checked = Canvas.NewConnectionLabel == ConnectionLabel.Out;
+      m_plainLinesMenuItem.Checked = !m_toggleDirectionalLinesMenuItem.Checked && !m_toggleDottedLinesMenuItem.Checked && currentMap.Canvas.NewConnectionLabel == ConnectionLabel.None;
+      m_upLinesMenuItem.Checked = currentMap.Canvas.NewConnectionLabel == ConnectionLabel.Up;
+      m_downLinesMenuItem.Checked = currentMap.Canvas.NewConnectionLabel == ConnectionLabel.Down;
+      m_inLinesMenuItem.Checked = currentMap.Canvas.NewConnectionLabel == ConnectionLabel.In;
+      m_outLinesMenuItem.Checked = currentMap.Canvas.NewConnectionLabel == ConnectionLabel.Out;
 
       // selection-specific commands
-      var hasSelectedElement = Canvas.SelectedElement != null;
+      var hasSelectedElement = currentMap.Canvas.SelectedElement != null;
       m_editDeleteMenuItem.Enabled = hasSelectedElement;
-      m_editPropertiesMenuItem.Enabled = Canvas.HasSingleSelectedElement;
+      m_editPropertiesMenuItem.Enabled = currentMap.Canvas.HasSingleSelectedElement;
       m_editIsDarkMenuItem.Enabled = hasSelectedElement;
       m_editSelectNoneMenuItem.Enabled = hasSelectedElement;
-      m_editSelectAllMenuItem.Enabled = Canvas.SelectedElementCount < Project.Current.Elements.Count;
-      m_editCopyMenuItem.Enabled = Canvas.SelectedElement != null;
-      m_editCopyColorToolMenuItem.Enabled = Canvas.HasSingleSelectedElement && (Canvas.SelectedElement is Room);
+      m_editSelectAllMenuItem.Enabled = currentMap.Canvas.SelectedElementCount < Project.Maps.Sum(map=>map.Elements.Count);
+      m_editCopyMenuItem.Enabled = currentMap.Canvas.SelectedElement != null;
+      m_editCopyColorToolMenuItem.Enabled = currentMap.Canvas.HasSingleSelectedElement && (currentMap.Canvas.SelectedElement is Room);
       m_editPasteMenuItem.Enabled = (!String.IsNullOrEmpty(Clipboard.GetText())) && ((Clipboard.GetText().Replace("\r\n", "|").Split('|')[0] == "Elements") || (Clipboard.GetText().Replace("\r\n", "|").Split('|')[0] == "Colors"));
-      m_editRenameMenuItem.Enabled = Canvas.HasSingleSelectedElement && (Canvas.SelectedElement is Room);
-      m_editIsDarkMenuItem.Enabled = Canvas.HasSingleSelectedElement && (Canvas.SelectedElement is Room);
-      m_editIsDarkMenuItem.Checked = Canvas.HasSingleSelectedElement && (Canvas.SelectedElement is Room) && ((Room) Canvas.SelectedElement).IsDark;
-      m_reverseLineMenuItem.Enabled = Canvas.HasSelectedElement<Connection>();
+      m_editRenameMenuItem.Enabled = currentMap.Canvas.HasSingleSelectedElement && (currentMap.Canvas.SelectedElement is Room);
+      m_editIsDarkMenuItem.Enabled = currentMap.Canvas.HasSingleSelectedElement && (currentMap.Canvas.SelectedElement is Room);
+      m_editIsDarkMenuItem.Checked = currentMap.Canvas.HasSingleSelectedElement && (currentMap.Canvas.SelectedElement is Room) && ((Room)currentMap.Canvas.SelectedElement).IsDark;
+      m_reverseLineMenuItem.Enabled = currentMap.Canvas.HasSelectedElement<Connection>();
 
       // automapping
-      m_automapStartMenuItem.Enabled = !Canvas.IsAutomapping;
-      m_automapStopMenuItem.Enabled = Canvas.IsAutomapping;
-      m_automapBar.Visible = Canvas.IsAutomapping;
-      m_automapBar.Status = Canvas.AutomappingStatus;
+      m_automapStartMenuItem.Enabled = !currentMap.Canvas.IsAutomapping;
+      m_automapStopMenuItem.Enabled = currentMap.Canvas.IsAutomapping;
+      m_automapBar.Visible = currentMap.Canvas.IsAutomapping;
+      m_automapBar.Status = currentMap.Canvas.AutomappingStatus;
 
       // minimap
-      m_viewMinimapMenuItem.Checked = Canvas.MinimapVisible;
+      m_viewMinimapMenuItem.Checked = currentMap.Canvas.MinimapVisible;
 
-      UpdateToolStripImages();
-      Canvas.UpdateScrollBars();
+      updateToolStripImages();
+      currentMap.Canvas.UpdateScrollBars();
 
       //Debug.WriteLine(Canvas.Focused ? "Focused!" : "NOT FOCUSED");
     }
 
     private void FileRecentProject_Click(object sender, EventArgs e)
     {
-      if (!CheckLoseProject())
+      if (!checkLoseProject())
       {
         return;
       }
@@ -811,7 +845,7 @@ namespace Trizbort
       OpenProject(fileName);
     }
 
-    private void UpdateToolStripImages()
+    private void updateToolStripImages()
     {
       foreach (ToolStripItem item in m_toolStrip.Items)
       {
@@ -825,58 +859,53 @@ namespace Trizbort
 
     private void ViewResetMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ResetZoomOrigin();
+      currentMap.Canvas.ResetZoomOrigin();
     }
 
     private void ViewZoomInMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomIn();
+      currentMap.Canvas.ZoomIn();
     }
 
     private void ViewZoomOutMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomOut();
+      currentMap.Canvas.ZoomOut();
     }
 
     private void ViewZoomFiftyPercentMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomFactor = 0.5f;
+      currentMap.Canvas.ZoomFactor = 0.5f;
     }
 
     private void ViewZoomOneHundredPercentMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomFactor = 1.0f;
+      currentMap.Canvas.ZoomFactor = 1.0f;
     }
 
     private void ViewZoomTwoHundredPercentMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomFactor = 2.0f;
+      currentMap.Canvas.ZoomFactor = 2.0f;
     }
 
     private void EditRenameMenuItem_Click(object sender, EventArgs e)
     {
-      if (Canvas.HasSingleSelectedElement && Canvas.SelectedElement.HasDialog)
+      if (currentMap.Canvas.HasSingleSelectedElement && currentMap.Canvas.SelectedElement.HasDialog)
       {
-        Canvas.SelectedElement.ShowDialog();
+        currentMap.Canvas.SelectedElement.ShowDialog();
       }
     }
 
     private void EditIsDarkMenuItem_Click(object sender, EventArgs e)
     {
-      foreach (var element in Canvas.SelectedElements)
-      {
-        if (element is Room)
-        {
-          var room = (Room) element;
-          room.IsDark = !room.IsDark;
-        }
+      foreach (var room in currentMap.Canvas.SelectedElements.Where(element => element.GetType() == typeof(Room)).Cast<Room>()) {
+        room.IsDark = !room.IsDark;
       }
     }
 
     private void ProjectSettingsMenuItem_Click(object sender, EventArgs e)
     {
       Settings.ShowMapDialog();
-      Canvas.Refresh();
+      currentMap.Canvas.Refresh();
     }
 
     private void ProjectResetToDefaultSettingsMenuItem_Click(object sender, EventArgs e)
@@ -918,32 +947,32 @@ namespace Trizbort
       {
         if (dialog.ShowDialog() == DialogResult.OK)
         {
-          Canvas.StartAutomapping(dialog.Data);
+          currentMap.Canvas.StartAutomapping(dialog.Data);
         }
       }
     }
 
     private void AutomapStopMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.StopAutomapping();
+      currentMap.Canvas.StopAutomapping();
     }
 
     private void ViewMinimapMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.MinimapVisible = !Canvas.MinimapVisible;
-      Settings.ShowMiniMap = Canvas.MinimapVisible;
+      currentMap.Canvas.MinimapVisible = !currentMap.Canvas.MinimapVisible;
+      Settings.ShowMiniMap = currentMap.Canvas.MinimapVisible;
     }
 
     private void FileMenu_DropDownOpening(object sender, EventArgs e)
     {
-      setupMRUMenu();
+      setupMruMenu();
 
       setupExportMenu();
     }
 
     private void setupExportMenu()
     {
-      if (Project.Current.Elements.OfType<Room>().Any())
+      if (Project.Maps.Sum(map => map.Elements.OfType<Room>().Count()) > 0)
       {
         m_fileExportInform7MenuItem.Enabled = true;
         m_fileExportInform6MenuItem.Enabled = true;
@@ -957,13 +986,9 @@ namespace Trizbort
       }
     }
 
-    private void setupMRUMenu()
+    private void setupMruMenu()
     {
-      var existingItems = new List<ToolStripItem>();
-      foreach (ToolStripItem existingItem in m_fileRecentMapsMenuItem.DropDownItems)
-      {
-        existingItems.Add(existingItem);
-      }
+      var existingItems = m_fileRecentMapsMenuItem.DropDownItems.Cast<ToolStripItem>().ToList();
       foreach (var existingItem in existingItems)
       {
         existingItem.Click -= FileRecentProject_Click;
@@ -982,8 +1007,7 @@ namespace Trizbort
         {
           if (File.Exists(recentProject))
           {
-            var menuItem = new ToolStripMenuItem(string.Format("&{0} {1}", index++, recentProject));
-            menuItem.Tag = recentProject;
+            var menuItem = new ToolStripMenuItem($"&{index++} {recentProject}") {Tag = recentProject};
             menuItem.Click += FileRecentProject_Click;
             m_fileRecentMapsMenuItem.DropDownItems.Add(menuItem);
           }
@@ -1001,17 +1025,17 @@ namespace Trizbort
 
     private void EditSelectAllMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectAll();
+      currentMap.Canvas.SelectAll();
     }
 
     private void EditSelectNoneMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectedElement = null;
+      currentMap.Canvas.SelectedElement = null;
     }
 
     private void ViewEntireMapMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.ZoomToFit();
+      currentMap.Canvas.ZoomToFit();
     }
 
     [DllImport("gdi32.dll")]
@@ -1022,24 +1046,24 @@ namespace Trizbort
 
     private void m_editCopyMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.CopySelectedElements();
+      currentMap.Canvas.CopySelectedElements();
     }
 
     private void m_editCopyColorToolMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.CopySelectedColor();
+      currentMap.Canvas.CopySelectedColor();
     }
 
     private void m_editPasteMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.Paste(false);
+      currentMap.Canvas.Paste(false);
     }
 
     private void m_editChangeRegionMenuItem_Click(object sender, EventArgs e)
     {
-      if (Canvas.HasSingleSelectedElement && Canvas.SelectedElement.HasDialog)
+      if (currentMap.Canvas.HasSingleSelectedElement && currentMap.Canvas.SelectedElement.HasDialog)
       {
-        var element = Canvas.SelectedElement as Room;
+        var element = currentMap.Canvas.SelectedElement as Room;
         if (element != null)
         {
           var room = element;
@@ -1052,7 +1076,7 @@ namespace Trizbort
     private void txtZoom_ValueChanged(object sender, EventArgs e)
     {
       if (txtZoom.Value <= 0) txtZoom.Value = 10;
-      Canvas.ChangeZoom((float)Convert.ToDouble(txtZoom.Value) / 100.0f);
+      currentMap.Canvas.ChangeZoom((float)Convert.ToDouble(txtZoom.Value) / 100.0f);
     }
 
     private void mapStatisticsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1063,37 +1087,37 @@ namespace Trizbort
 
     private void selectAllRoomsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectAllRooms();
+      currentMap.Canvas.SelectAllRooms();
     }
 
     private void selectedUnconnectedRoomsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectAllUnconnectedRooms();
+      currentMap.Canvas.SelectAllUnconnectedRooms();
     }
 
     private void selectAllConnectionsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectAllConnections();
+      currentMap.Canvas.SelectAllConnections();
     }
 
     private void selectDanglingConnectionsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectDanglingConnections();
+      currentMap.Canvas.SelectDanglingConnections();
     }
 
     private void selectSelfLoopingConnectionsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectSelfLoopingConnections();
+      currentMap.Canvas.SelectSelfLoopingConnections();
     }
 
     private void selectRoomsWObjectsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectRoomsWithObjects();
+      currentMap.Canvas.SelectRoomsWithObjects();
     }
 
     private void selectRoomsWoObjectsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Canvas.SelectRoomsWithoutObjects();
+      currentMap.Canvas.SelectRoomsWithoutObjects();
     }
   }
 }

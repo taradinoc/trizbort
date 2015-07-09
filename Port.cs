@@ -32,7 +32,7 @@ namespace Trizbort
     /// <summary>
     /// A docking point at which a connection's vertex may join to an element.
     /// </summary>
-    internal abstract class Port
+    public abstract class Port
     {
         public Port(Element owner)
         {

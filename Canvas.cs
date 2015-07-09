@@ -37,7 +37,7 @@ using Timer = System.Threading.Timer;
 
 namespace Trizbort
 {
-  internal partial class Canvas : UserControl, IAutomapCanvas
+  public sealed partial class Canvas : UserControl, IAutomapCanvas
   {
     private static readonly int RecomputeNMillisecondsAfterChange = 500;
     private static bool mSmartLineSegmentsUpToDate;
@@ -70,18 +70,19 @@ namespace Trizbort
 
     public event EventHandler ZoomChanged;
 
-    protected void RaiseZoomed()
+    public Map Map { get; set; }
+
+    private void raiseZoomed()
     {
       var zoomed = ZoomChanged;
-      if (zoomed != null)
-      {
-        zoomed(this, EventArgs.Empty);
-      }
+      zoomed?.Invoke(this, EventArgs.Empty);
     }
 
-    public Canvas()
+    public Canvas(Map map)
     {
       InitializeComponent();
+
+      Map = map;
 
       SetStyle(ControlStyles.Selectable, true);
       TabStop = true;
@@ -101,9 +102,11 @@ namespace Trizbort
       Settings.Changed += onSettingsChanged;
       onSettingsChanged(this, EventArgs.Empty);
 
-      m_threadSafeAutomapCanvas = new MultithreadedAutomapCanvas(this);
+      mThreadSafeAutomapCanvas = new multithreadedAutomapCanvas(this);
       m_minimap.Canvas = this;
+      m_minimap.Map = this.Map;
     }
+
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float ZoomFactor
@@ -115,7 +118,7 @@ namespace Trizbort
         {
           mZoomFactor = value;
           lblZoom.Text = mZoomFactor.ToString("p0");
-          RaiseZoomed();
+          raiseZoomed();
           Invalidate();
         }
       }
@@ -153,10 +156,7 @@ namespace Trizbort
       }
     }
 
-    private float snapToElementSizeAtCurrentZoomFactor
-    {
-      get { return Settings.SnapToElementSize; }
-    }
+    private float snapToElementSizeAtCurrentZoomFactor => Settings.SnapToElementSize;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Element SelectedElement
@@ -177,20 +177,11 @@ namespace Trizbort
       }
     }
 
-    public int SelectedElementCount
-    {
-      get { return mSelectedElements.Count; }
-    }
+    public int SelectedElementCount => mSelectedElements.Count;
 
-    public bool HasSingleSelectedElement
-    {
-      get { return SelectedElementCount == 1; }
-    }
+    public bool HasSingleSelectedElement => SelectedElementCount == 1;
 
-    public IEnumerable<Element> SelectedElements
-    {
-      get { return mSelectedElements; }
-    }
+    public IEnumerable<Element> SelectedElements => mSelectedElements;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     private ResizeHandle hoverHandle
@@ -245,15 +236,9 @@ namespace Trizbort
       }
     }
 
-    public bool CanSelectElements
-    {
-      get { return true; }
-    }
+    public bool CanSelectElements => true;
 
-    public bool CanDrawLine
-    {
-      get { return true; }
-    }
+    public bool CanDrawLine => true;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ConnectionStyle NewConnectionStyle
@@ -311,13 +296,10 @@ namespace Trizbort
           return Drawing.MoveLineCursor;
         }
 
-        if (hoverHandle != null)
+        var cursor = hoverHandle?.Cursor;
+        if (cursor != null)
         {
-          var cursor = hoverHandle.Cursor;
-          if (cursor != null)
-          {
-            return cursor;
-          }
+          return cursor;
         }
 
         if (HoverElement is IMoveable && mSelectedElements.Contains(HoverElement))
@@ -357,10 +339,7 @@ namespace Trizbort
       if (disposing)
       {
         StopAutomapping();
-        if (components != null)
-        {
-          components.Dispose();
-        }
+        components?.Dispose();
       }
       base.Dispose(disposing);
     }
@@ -406,27 +385,27 @@ namespace Trizbort
 
     private void onProjectChanged(object sender, ProjectChangedEventArgs e)
     {
-      if (e.OldProject != null)
-      {
-        e.OldProject.Elements.Added -= onElementAdded;
-        e.OldProject.Elements.Removed -= onElementRemoved;
-
-        foreach (var element in e.OldProject.Elements)
-        {
-          element.Changed -= onElementChanged;
-        }
-      }
-      if (e.NewProject != null)
-      {
-        e.NewProject.Elements.Added += onElementAdded;
-        e.NewProject.Elements.Removed += onElementRemoved;
-
-        foreach (var element in e.NewProject.Elements)
-        {
-          element.Changed += onElementChanged;
-        }
-      }
-
+//      if (e.OldProject != null)
+//      {
+//        e.OldProject.Elements.Added -= onElementAdded;
+//        e.OldProject.Elements.Removed -= onElementRemoved;
+//
+//        foreach (var element in e.OldProject.Elements)
+//        {
+//          element.Changed -= onElementChanged;
+//        }
+//      }
+//      if (e.NewProject != null)
+//      {
+//        e.NewProject.Elements.Added += onElementAdded;
+//        e.NewProject.Elements.Removed += onElementRemoved;
+//
+//        foreach (var element in e.NewProject.Elements)
+//        {
+//          element.Changed += onElementChanged;
+//        }
+//      }
+//
       reset();
       ZoomToFit();
     }
@@ -516,7 +495,7 @@ namespace Trizbort
 
     public Rect ComputeCanvasBounds(bool includePadding)
     {
-      var bounds = Project.Current.Elements.Aggregate(Rect.Empty, (current, element) => element.UnionBoundsWith(current, true));
+      var bounds = Map.Elements.Aggregate(Rect.Empty, (current, element) => element.UnionBoundsWith(current, true));
 
       if (includePadding)
       {
@@ -593,13 +572,13 @@ namespace Trizbort
         {
           var fps = 1.0f/(float) (stopwatch.Elapsed.TotalSeconds);
           graphics.Graphics.Transform = new Matrix();
-          graphics.DrawString(string.Format("{0} ms ({1} fps) {2} rebuilds", stopwatch.Elapsed.TotalMilliseconds, fps, TextBlock.RebuildCount), Settings.LargeFont, Brushes.Red, new PointF(10, 20 + Settings.LargeFont.GetHeight()));
+          graphics.DrawString($"{stopwatch.Elapsed.TotalMilliseconds} ms ({fps} fps) {TextBlock.RebuildCount} rebuilds", Settings.LargeFont, Brushes.Red, new PointF(10, 20 + Settings.LargeFont.GetHeight()));
         }
         if (Settings.DebugShowMouseCoordinates && !finalRender)
         {
           var mouseCoord = MousePosition;
           graphics.Graphics.Transform = new Matrix();
-          graphics.DrawString(string.Format("X:{0}  Y:{1}", mouseCoord.X, mouseCoord.Y), Settings.LargeFont, Brushes.Green, new PointF(10, 40 + Settings.LargeFont.GetHeight()));
+          graphics.DrawString($"X:{mouseCoord.X}  Y:{mouseCoord.Y}", Settings.LargeFont, Brushes.Green, new PointF(10, 40 + Settings.LargeFont.GetHeight()));
           graphics.DrawString(HoverElement == null ? new Point(0, 0).ToString() : PointToClient(HoverElement.Position.ToPoint()).ToString(), Settings.LargeFont, new SolidBrush(Color.YellowGreen), new PointF(10, 60 + Settings.LargeFont.GetHeight()));
         }
       }
@@ -671,7 +650,7 @@ namespace Trizbort
     private List<Element> depthSortElements()
     {
       var elements = new List<Element>();
-      elements.AddRange(Project.Current.Elements);
+      elements.AddRange(Map.Elements);
       elements.Sort();
       return elements;
     }
@@ -999,7 +978,7 @@ namespace Trizbort
               roomTooltip.SetSuperTooltip(this, toolTip);
               
               Vector tPoint = new Vector();
-              if (hoverElement is Room)
+              if (hoverElement.GetType() == typeof(Room))
               {
                 var tRoom = (Room) hoverElement;
                 tPoint = tRoom.Position;
@@ -1059,7 +1038,7 @@ namespace Trizbort
           var viewportCenter = Viewport.Center;
           Room closestRoom = null;
           var closestDistance = float.MaxValue;
-          foreach (var element in Project.Current.Elements.OfType<Room>())
+          foreach (var element in Map.Elements.OfType<Room>())
           {
             var room1 = element;
             if (room1 != null)
@@ -1325,7 +1304,7 @@ namespace Trizbort
         // for diagnostic purposes, cancel single stepping
         if (IsAutomapping)
         {
-          m_automap.RunToCompletion();
+          mAutomap.RunToCompletion();
         }
       }
       else if (e.KeyCode == Keys.F11)
@@ -1333,7 +1312,7 @@ namespace Trizbort
         // for diagnostic purposes, allow single stepping
         if (IsAutomapping)
         {
-          m_automap.Step();
+          mAutomap.Step();
         }
       }
       else if (e.KeyCode >= Keys.NumPad0 && e.KeyCode <= Keys.NumPad9)
@@ -1559,7 +1538,7 @@ namespace Trizbort
             Size = room.Size
           };
 
-          Project.Current.Elements.Add(newRoom);
+          Map.Elements.Add(newRoom);
           addConnection(room, compassPoint, newRoom, CompassPointHelper.GetOpposite(compassPoint));
           SelectedElement = newRoom;
           EnsureVisible(SelectedElement);
@@ -1600,7 +1579,7 @@ namespace Trizbort
         Flow = NewConnectionFlow
       };
       connection.SetText(NewConnectionLabel);
-      Project.Current.Elements.Add(connection);
+      Map.Elements.Add(connection);
 
       return connection;
     }
@@ -1715,7 +1694,7 @@ namespace Trizbort
       }
       else if (hoverPort != null)
       {
-        if (hoverPort is MoveablePort)
+        if (hoverPort.GetType() == typeof(MoveablePort))
         {
           mDragMovePort = (MoveablePort) hoverPort;
           mDragOffsetCanvas = Settings.Snap(canvasPos - hoverPort.Position);
@@ -1806,7 +1785,7 @@ namespace Trizbort
       connection.Style = NewConnectionStyle;
       connection.Flow = NewConnectionFlow;
       connection.SetText(NewConnectionLabel);
-      Project.Current.Elements.Add(connection);
+      Map.Elements.Add(connection);
       SelectedElement = connection;
       mDragMovePort = (MoveablePort) connection.Ports[1];
       mDragOffsetCanvas = Settings.Snap(canvasPos - connection.VertexList[0].Position);
@@ -1818,9 +1797,8 @@ namespace Trizbort
     public void AddRoom(bool atCursor, bool insertRoom = false)
     {
       // Changed this to ignore ID gaps. ID gaps are resolved on load
-      var room = new Room(Project.Current);
+      var room = new Room(Project.Current) {Size = mNewRoomSize};
 
-      room.Size = mNewRoomSize;
       Vector pos;
       if (atCursor && ClientRectangle.Contains(PointToClient(MousePosition)))
       {
@@ -1843,7 +1821,7 @@ namespace Trizbort
       while (clash)
       {
         clash = false;
-        foreach (var element in Project.Current.Elements)
+        foreach (var element in Map.Elements)
         {
           if (element is IMoveable && ((IMoveable)element).Position == pos)
           {
@@ -1854,7 +1832,7 @@ namespace Trizbort
         }
       }
       room.Position = pos;
-      Project.Current.Elements.Add(room);
+      Map.Elements.Add(room);
 
       if (insertRoom)
       {
@@ -1873,7 +1851,7 @@ namespace Trizbort
           addConnection(source, sourceCompass, room, targetCompass);
           addConnection(room, sourceCompass, target, targetCompass);
 
-          Project.Current.Elements.Remove(conn);
+          Map.Elements.Remove(conn);
         }
       }
 
@@ -1902,14 +1880,14 @@ namespace Trizbort
 
     private void moveElementBy(Element element, Vector delta)
     {
-      if (element is IMoveable)
+      if (element.GetType() == typeof(IMoveable))
       {
         // move any selected moveable elements
         var moveable = (IMoveable) element;
         moveable.Position += delta;
       }
 
-      if (element is Connection)
+      if (element.GetType() == typeof(Connection))
       {
         // move any free floating points on selected connections
         var connection = (Connection) element;
@@ -2025,7 +2003,7 @@ namespace Trizbort
         // clear the selection now the line is drawn
         SelectedElement = null;
 
-        if (mDragMovePort.Owner is Connection)
+        if (mDragMovePort.Owner.GetType() == typeof(Connection))
         {
           // remove dead connections
           var connection = (Connection) mDragMovePort.Owner;
@@ -2035,7 +2013,7 @@ namespace Trizbort
             var pos = connection.VertexList[0].Position;
             foreach (var v in connection.VertexList)
             {
-              if (v.Port != null && v.Port.Owner is Room)
+              if (v.Port?.Owner.GetType() == typeof(Room))
               {
                 // keep connections attached to rooms;
                 // if they don't go anywhere, they
@@ -2054,7 +2032,7 @@ namespace Trizbort
           if (same)
           {
             // remove connections which don't go anywhere useful
-            Project.Current.Elements.Remove(connection);
+            Map.Elements.Remove(connection);
           }
           SelectedElement = connection;
         }
@@ -2091,15 +2069,7 @@ namespace Trizbort
 
     private List<Element> hitTest(Rect rect, bool roomsOnly)
     {
-      var list = new List<Element>();
-      foreach (var element in Project.Current.Elements)
-      {
-        if ((!roomsOnly || element is Room) && element.Intersects(rect))
-        {
-          list.Add(element);
-        }
-      }
-      return list;
+      return Map.Elements.Where(element => (!roomsOnly || element.GetType() == typeof (Room)) && element.Intersects(rect)).ToList();
     }
 
     private Rect getMarqueeCanvasBounds()
@@ -2225,13 +2195,16 @@ namespace Trizbort
       // only if we have a single element selected;
       // otherwise selecting multiple items will cause one to override the others' settings!
       var selectedElement = SelectedElement;
-      if (selectedElement is Connection)
+      if (selectedElement != null)
       {
-        setConnectionDefaultsFrom((Connection) selectedElement);
-      }
-      else if (selectedElement is Room)
-      {
-        setRoomDefaultsFrom((Room) selectedElement);
+        if (selectedElement.GetType() == typeof (Connection))
+        {
+          setConnectionDefaultsFrom((Connection) selectedElement);
+        }
+        else if (selectedElement.GetType() == typeof (Room))
+        {
+          setRoomDefaultsFrom((Room) selectedElement);
+        }
       }
       Invalidate();
     }
@@ -2239,7 +2212,7 @@ namespace Trizbort
     public void SelectAllRegion(IEnumerable<string> regions)
     {
       mSelectedElements.Clear();
-      var regionRooms = Project.Current.Elements.OfType<Room>().ToList().Where(p => regions.Contains(p.Region));
+      var regionRooms = Map.Elements.OfType<Room>().ToList().Where(p => regions.Contains(p.Region));
       mSelectedElements.AddRange(regionRooms);
       updateSelection();
     }
@@ -2247,7 +2220,7 @@ namespace Trizbort
     public void SelectAll()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements);
+      mSelectedElements.AddRange(Map.Elements);
       updateSelection();
     }
 
@@ -2307,13 +2280,10 @@ namespace Trizbort
       var needMovablePortsOnSelectedElement = CanSelectElements;
       if (needMovablePortsOnSelectedElement && HasSingleSelectedElement)
       {
-        foreach (var port in SelectedElement.Ports)
-        {
-          if (port is MoveablePort)
-          {
+        if (SelectedElement != null)
+          foreach (MoveablePort port in SelectedElement.Ports.OfType<MoveablePort>()) {
             mPorts.Add(port);
           }
-        }
       }
 
       Invalidate();
@@ -2321,13 +2291,8 @@ namespace Trizbort
 
     public void ApplyConnectionStyle(ConnectionStyle connectionStyle)
     {
-      foreach (var element in mSelectedElements)
-      {
-        if (element is Connection)
-        {
-          var connection = (Connection) element;
-          connection.Style = connectionStyle;
-        }
+      foreach (var connection in mSelectedElements.Where(element => element.GetType() == typeof (Connection)).Cast<Connection>()) {
+        connection.Style = connectionStyle;
       }
       Invalidate();
     }
@@ -2337,10 +2302,7 @@ namespace Trizbort
     private void raiseNewConnectionStyleChanged()
     {
       var changed = NewConnectionStyleChanged;
-      if (changed != null)
-      {
-        changed(this, EventArgs.Empty);
-      }
+      changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void ApplyConnectionFlow(ConnectionFlow connectionFlow)
@@ -2362,10 +2324,7 @@ namespace Trizbort
     private void raiseNewConnectionFlowChanged()
     {
       var changed = NewConnectionFlowChanged;
-      if (changed != null)
-      {
-        changed(this, EventArgs.Empty);
-      }
+      changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetDefaultConnectionColor()
@@ -2405,10 +2364,7 @@ namespace Trizbort
     private void raiseNewConnectionLabelChanged()
     {
       var changed = NewConnectionLabelChanged;
-      if (changed != null)
-      {
-        changed(this, EventArgs.Empty);
-      }
+      changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void ResetZoomOrigin()
@@ -2464,13 +2420,8 @@ namespace Trizbort
 
     public void ReverseLineDirection()
     {
-      foreach (var element in mSelectedElements)
-      {
-        if (element is Connection)
-        {
-          var connection = (Connection) element;
-          connection.Reverse();
-        }
+      foreach (var connection in mSelectedElements.Where(element => element.GetType() == typeof (Connection)).Cast<Connection>()) {
+        connection.Reverse();
       }
     }
 
@@ -2479,7 +2430,7 @@ namespace Trizbort
       var doomedElements = new List<Element>(mSelectedElements);
       foreach (var element in doomedElements)
       {
-        Project.Current.Elements.Remove(element);
+        Map.Elements.Remove(element);
       }
       mSelectedElements.Clear();
       updateSelection();
@@ -2511,10 +2462,10 @@ namespace Trizbort
       var displaySize = new PointF(Math.Max(0, Width - m_vScrollBar.Width), Math.Max(0, Height - m_hScrollBar.Height));
 
       Rect clientBounds;
-      if (Project.Current.Elements.Count > 0)
+      if (Map.Elements.Count > 0)
       {
         var canvasBounds = Rect.Empty;
-        foreach (var element in Project.Current.Elements)
+        foreach (var element in Map.Elements)
         {
           canvasBounds = element.UnionBoundsWith(canvasBounds, true);
         }
@@ -2617,13 +2568,13 @@ namespace Trizbort
       foreach (var element in mSelectedElements)
       {
         clipboardText += "\r\n";
-        if (element is Room)
+        if (element.GetType() == typeof(Room))
         {
           clipboardText += "room:";
           clipboardText += element.ID + ":";
           clipboardText += ((Room) element).ClipboardPrint();
         }
-        else if (element is Connection)
+        else if (element.GetType() == typeof(Connection))
         {
           clipboardText += "line:";
           clipboardText += element.ID + ":";
@@ -2638,7 +2589,7 @@ namespace Trizbort
     {
       var clipboardText = "Colors";
 
-      if (SelectedElement is Room)
+      if (SelectedElement.GetType() == typeof(Room))
       {
         clipboardText += "\r\n";
         clipboardText += ((Room) SelectedElement).ClipboardColorPrint();
@@ -2684,7 +2635,7 @@ namespace Trizbort
                 {
                   AddRoom(atCursor); // Create the room
 
-                  var currentRoom = (Room) Project.Current.Elements[Project.Current.Elements.Count - 1]; // Link to the new room
+                  var currentRoom = (Room) Map.Elements[Map.Elements.Count - 1]; // Link to the new room
 
                   currentRoom.OldID = Convert.ToInt32(elementProperties[1]); // Keep a record of the old ID
                   currentRoom.Name = elementProperties[2]; // Set the room's name
@@ -2768,7 +2719,7 @@ namespace Trizbort
                 {
                   // Create the new connection
                   var currentConnection = new Connection(Project.Current);
-                  Project.Current.Elements.Add(currentConnection);
+                  Map.Elements.Add(currentConnection);
 
                   // Set the connection style
                   switch (elementProperties[2])
@@ -2841,7 +2792,7 @@ namespace Trizbort
                       foreach (var element in newElements)
                       {
                         // Check for rooms
-                        if (element is Room)
+                        if (element.GetType() == typeof(Room))
                         {
                           // See if it was the room that this used to be docked to
                           if (((Room) element).OldID == Convert.ToInt32(elementProperties[10]))
@@ -2901,7 +2852,7 @@ namespace Trizbort
                       foreach (var element in newElements)
                       {
                         // Check for rooms
-                        if (element is Room)
+                        if (element.GetType() == typeof(Room))
                         {
                           // See if it was the room that this used to be docked to
                           if (((Room) element).OldID == Convert.ToInt32(elementProperties[14]))
@@ -2956,7 +2907,7 @@ namespace Trizbort
               // If the connection was not pastable it will get flagged and removed
               if (removeElement)
               {
-                Project.Current.Elements.Remove(Project.Current.Elements[Project.Current.Elements.Count - 1]);
+                Map.Elements.Remove(Map.Elements[Map.Elements.Count - 1]);
                 removeElement = false;
               }
 
@@ -2984,7 +2935,7 @@ namespace Trizbort
 
                 foreach (var element in SelectedElements)
                 {
-                  if (element is Room)
+                  if (element.GetType() == typeof(Room))
                   {
                     ((Room) element).RoomFill = ColorTranslator.FromHtml(fillColor);
                     ((Room) element).SecondFill = ColorTranslator.FromHtml(secondFillColor);
@@ -3135,35 +3086,35 @@ namespace Trizbort
     public void SelectAllRooms()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Room>());
+      mSelectedElements.AddRange(Map.Elements.OfType<Room>());
       updateSelection();
     }
 
     public void SelectAllConnections()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Connection>());
+      mSelectedElements.AddRange(Map.Elements.OfType<Connection>());
       updateSelection();
     }
 
     public void SelectAllUnconnectedRooms()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Room>().Where(p => p.GetConnections().Count == 0));
+      mSelectedElements.AddRange(Map.Elements.OfType<Room>().Where(p => p.GetConnections().Count == 0));
       updateSelection();
     }
 
     public void SelectDanglingConnections()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Connection>().Where(p => p.GetSourceRoom() == null || p.GetTargetRoom() == null));
+      mSelectedElements.AddRange(Map.Elements.OfType<Connection>().Where(p => p.GetSourceRoom() == null || p.GetTargetRoom() == null));
       updateSelection();
     }
 
     public void SelectSelfLoopingConnections()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Connection>().Where(p =>
+      mSelectedElements.AddRange(Map.Elements.OfType<Connection>().Where(p =>
       {
         var sourceRoom = p.GetSourceRoom();
         var targetRoom = p.GetTargetRoom();
@@ -3175,14 +3126,14 @@ namespace Trizbort
     public void SelectRoomsWithObjects()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Room>().Where(p => p.ListOfObjects().Count > 0));
+      mSelectedElements.AddRange(Map.Elements.OfType<Room>().Where(p => p.ListOfObjects().Count > 0));
       updateSelection();
     }
 
     public void SelectRoomsWithoutObjects()
     {
       mSelectedElements.Clear();
-      mSelectedElements.AddRange(Project.Current.Elements.OfType<Room>().Where(p => p.ListOfObjects().Count == 0));
+      mSelectedElements.AddRange(Map.Elements.OfType<Room>().Where(p => p.ListOfObjects().Count == 0));
       updateSelection();
     }
   }

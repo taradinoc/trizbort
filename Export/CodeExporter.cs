@@ -26,8 +26,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
-using System.Xml;
 
 namespace Trizbort.Export
 {
@@ -36,9 +36,9 @@ namespace Trizbort.Export
     /// <summary>
     ///   The collection of locations to export, indexed by their corresponding room.
     /// </summary>
-    private readonly Dictionary<Room, Location> m_mapRoomToLocation = new Dictionary<Room, Location>();
+    private readonly Dictionary<Room, Location> mMapRoomToLocation = new Dictionary<Room, Location>();
 
-    public CodeExporter()
+    protected CodeExporter()
     {
       LocationsInExportOrder = new List<Location>();
     }
@@ -46,28 +46,16 @@ namespace Trizbort.Export
     public abstract string FileDialogTitle { get; }
     public abstract List<KeyValuePair<string, string>> FileDialogFilters { get; }
 
-    protected virtual Encoding Encoding
-    {
-      get { return Encoding.UTF8; }
-    }
+    protected virtual Encoding Encoding => Encoding.UTF8;
 
     protected abstract IEnumerable<string> ReservedWords { get; }
 
-    protected static IEnumerable<AutomapDirection> AllDirections
-    {
-      get
-      {
-        foreach (AutomapDirection direction in Enum.GetValues(typeof (AutomapDirection)))
-        {
-          yield return direction;
-        }
-      }
-    }
+    protected static IEnumerable<AutomapDirection> AllDirections => Enum.GetValues(typeof (AutomapDirection)).Cast<AutomapDirection>();
 
     /// <summary>
     ///   The collection of locations on the map, in the order in which they should be exported.
     /// </summary>
-    protected List<Location> LocationsInExportOrder { get; private set; }
+    protected List<Location> LocationsInExportOrder { get; }
 
     public void Dispose()
     {
@@ -99,7 +87,7 @@ namespace Trizbort.Export
         }
 
         ExportHeader(writer, title, author, Project.Current.Description ?? string.Empty);
-        PrepareContent();
+        prepareContent();
         ExportContent(writer);
 
         ss = writer.ToString();
@@ -129,7 +117,7 @@ namespace Trizbort.Export
         }
 
         ExportHeader(writer, title, author, Project.Current.Description ?? string.Empty);
-        PrepareContent();
+        prepareContent();
         ExportContent(writer);
       }
     }
@@ -144,15 +132,15 @@ namespace Trizbort.Export
     protected abstract string GetExportName(Room room, int? suffix);
     protected abstract string GetExportNameForObject(string displayName, int? suffix);
 
-    private void PrepareContent()
+    private void prepareContent()
     {
-      FindRooms();
-      FindExits();
-      PickBestExits();
-      FindThings();
+      findRooms();
+      findExits();
+      pickBestExits();
+      findThings();
     }
 
-    private void FindRooms()
+    private void findRooms()
     {
       var mapExportNameToRoom = new Dictionary<string, Room>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -162,10 +150,12 @@ namespace Trizbort.Export
         mapExportNameToRoom.Add(reservedWord, null);
       }
 
-      foreach (var element in Project.Current.Elements)
+      foreach (var map in Project.Maps)
       {
-        if (element is Room)
+        foreach (var element in map.Elements)
         {
+          if (element.GetType() != typeof (Room)) continue;
+
           var room = (Room) element;
 
           // assign each room a unique export name.
@@ -181,54 +171,46 @@ namespace Trizbort.Export
           mapExportNameToRoom[exportName] = room;
           var location = new Location(room, exportName);
           LocationsInExportOrder.Add(location);
-          m_mapRoomToLocation[room] = location;
+          mMapRoomToLocation[room] = location;
         }
       }
     }
 
-    private void FindExits()
+    private void findExits()
     {
       // find the exits from each room,
       // file them by room, and assign them priorities.
       // don't decide yet which exit is "the" from a room in a particular direction,
       // since we need to compare all a room's exits for that.
-      foreach (var element in Project.Current.Elements)
-      {
-        if (element is Connection)
+      foreach (var connection in Project.Maps.SelectMany(map => map.Elements.Where(element => element.GetType() == typeof (Connection)).Cast<Connection>())) {
+        CompassPoint sourceCompassPoint, targetCompassPoint;
+        var sourceRoom = connection.GetSourceRoom(out sourceCompassPoint);
+        var targetRoom = connection.GetTargetRoom(out targetCompassPoint);
+
+        if (sourceRoom == null || targetRoom == null)
         {
-          var connection = (Connection) element;
-          CompassPoint sourceCompassPoint, targetCompassPoint;
-          var sourceRoom = connection.GetSourceRoom(out sourceCompassPoint);
-          var targetRoom = connection.GetTargetRoom(out targetCompassPoint);
+          // ignore fully or partially undocked connections
+          continue;
+        }
 
-          if (sourceRoom == null || targetRoom == null)
-          {
-            // ignore fully or partially undocked connections
-            continue;
-          }
+        if (sourceRoom == targetRoom && sourceCompassPoint == targetCompassPoint)
+        {
+          // ignore stub connections, such as from automapping
+          continue;
+        }
 
-          if (sourceRoom == targetRoom && sourceCompassPoint == targetCompassPoint)
-          {
-            // ignore stub connections, such as from automapping
-            continue;
-          }
+        Location sourceLocation, targetLocation;
+        if (!mMapRoomToLocation.TryGetValue(sourceRoom, out sourceLocation) || !mMapRoomToLocation.TryGetValue(targetRoom, out targetLocation)) continue;
+        sourceLocation.AddExit(new Exit(sourceLocation, targetLocation, sourceCompassPoint, connection.StartText, connection.Style));
 
-          Location sourceLocation, targetLocation;
-          if (m_mapRoomToLocation.TryGetValue(sourceRoom, out sourceLocation) &&
-              m_mapRoomToLocation.TryGetValue(targetRoom, out targetLocation))
-          {
-            sourceLocation.AddExit(new Exit(sourceLocation, targetLocation, sourceCompassPoint, connection.StartText, connection.Style));
-
-            if (connection.Flow == ConnectionFlow.TwoWay)
-            {
-              targetLocation.AddExit(new Exit(targetLocation, sourceLocation, targetCompassPoint, connection.EndText, connection.Style));
-            }
-          }
+        if (connection.Flow == ConnectionFlow.TwoWay)
+        {
+          targetLocation.AddExit(new Exit(targetLocation, sourceLocation, targetCompassPoint, connection.EndText, connection.Style));
         }
       }
     }
 
-    private void FindThings()
+    private void findThings()
     {
       var mapExportNameToThing = new Dictionary<string, Thing>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -297,7 +279,7 @@ namespace Trizbort.Export
       }
     }
 
-    private void PickBestExits()
+    private void pickBestExits()
     {
       // for every direction from every room, if there are one or more exits
       // in said direction, pick the best one.
@@ -309,9 +291,8 @@ namespace Trizbort.Export
 
     protected class Location
     {
-      private readonly List<Exit> m_exits = new List<Exit>();
-      private readonly Dictionary<AutomapDirection, Exit> m_mapDirectionToBestExit = new Dictionary<AutomapDirection, Exit>();
-      private readonly List<Thing> m_things = new List<Thing>();
+      private readonly List<Exit> mExits = new List<Exit>();
+      private readonly Dictionary<AutomapDirection, Exit> mMapDirectionToBestExit = new Dictionary<AutomapDirection, Exit>();
 
       public Location(Room room, string exportName)
       {
@@ -319,37 +300,34 @@ namespace Trizbort.Export
         ExportName = exportName;
       }
 
-      public Room Room { get; private set; }
-      public string ExportName { get; private set; }
+      public Room Room { get; }
+      public string ExportName { get; }
       public bool Exported { get; set; }
 
-      public List<Thing> Things
-      {
-        get { return m_things; }
-      }
+      public List<Thing> Things { get; } = new List<Thing>();
 
       public void AddExit(Exit exit)
       {
-        m_exits.Add(exit);
+        mExits.Add(exit);
       }
 
       public void PickBestExits()
       {
-        m_mapDirectionToBestExit.Clear();
+        mMapDirectionToBestExit.Clear();
         foreach (var direction in AllDirections)
         {
-          var exit = PickBestExit(direction);
+          var exit = pickBestExit(direction);
           if (exit != null)
           {
-            m_mapDirectionToBestExit.Add(direction, exit);
+            mMapDirectionToBestExit.Add(direction, exit);
           }
         }
       }
 
-      private Exit PickBestExit(AutomapDirection direction)
+      private Exit pickBestExit(AutomapDirection direction)
       {
         // sort exits by priority for this direction only
-        m_exits.Sort((Exit a, Exit b) =>
+        mExits.Sort((a, b) =>
         {
           var one = a.GetPriority(direction);
           var two = b.GetPriority(direction);
@@ -359,13 +337,12 @@ namespace Trizbort.Export
         // pick the highest priority exit if its direction matches;
         // if the highest priority exit's direction doesn't match,
         // there's no exit in this direction.
-        if (m_exits.Count > 0)
+        if (mExits.Count <= 0) return null;
+
+        var exit = mExits[0];
+        if (exit.PrimaryDirection == direction || exit.SecondaryDirection == direction)
         {
-          var exit = m_exits[0];
-          if (exit.PrimaryDirection == direction || exit.SecondaryDirection == direction)
-          {
-            return exit;
-          }
+          return exit;
         }
         return null;
       }
@@ -373,7 +350,7 @@ namespace Trizbort.Export
       public Exit GetBestExit(AutomapDirection direction)
       {
         Exit exit;
-        if (m_mapDirectionToBestExit.TryGetValue(direction, out exit))
+        if (mMapDirectionToBestExit.TryGetValue(direction, out exit))
         {
           return exit;
         }
@@ -394,7 +371,7 @@ namespace Trizbort.Export
       ///   does not go up, down, in or out is a higher priority than a northerly exit
       ///   docked to the NNE compass point and which also goes up.
       /// </remarks>
-      private int m_primaryPriority;
+      private int mPrimaryPriority;
 
       public Exit(Location source, Location target, CompassPoint visualCompassPoint, string connectionText, ConnectionStyle connectionStyle)
       {
@@ -403,12 +380,12 @@ namespace Trizbort.Export
         VisualCompassPoint = visualCompassPoint;
         Conditional = connectionStyle == ConnectionStyle.Dashed;
 
-        AssignPrimaryPriority();
-        AssignSecondaryDirection(connectionText);
+        assignPrimaryPriority();
+        assignSecondaryDirection(connectionText);
         if (SecondaryDirection != null)
           PrimaryDirection = (AutomapDirection)SecondaryDirection;
         else
-          AssignPrimaryDirection();
+          assignPrimaryDirection();
       }
 
       /// <summary>
@@ -419,7 +396,7 @@ namespace Trizbort.Export
       /// <summary>
       ///   The room to which this exit leads.
       /// </summary>
-      public Location Target { get; private set; }
+      public Location Target { get; }
 
       /// <summary>
       ///   The compass point in Trizbort at which this exit is docked to the starting room.
@@ -428,7 +405,7 @@ namespace Trizbort.Export
       ///   Naturally this may include compass points such as SouthSouthWest need to be
       ///   translated into an exportable direction; see PrimaryDirection and SecondaryDirection.
       /// </remarks>
-      public CompassPoint VisualCompassPoint { get; private set; }
+      public CompassPoint VisualCompassPoint { get; }
 
       /// <summary>
       ///   The primary direction of this exit: N, S, E, W, NE, NW, SE, SW.
@@ -459,7 +436,7 @@ namespace Trizbort.Export
       {
         if (direction == PrimaryDirection)
         {
-          return m_primaryPriority;
+          return mPrimaryPriority;
         }
         if (direction == SecondaryDirection)
         {
@@ -468,7 +445,7 @@ namespace Trizbort.Export
         return -1;
       }
 
-      private void AssignPrimaryDirection()
+      private void assignPrimaryDirection()
       {
         switch (VisualCompassPoint)
         {
@@ -509,7 +486,7 @@ namespace Trizbort.Export
         }
       }
 
-      private void AssignSecondaryDirection(string connectionText)
+      private void assignSecondaryDirection(string connectionText)
       {
         switch (connectionText)
         {
@@ -531,9 +508,9 @@ namespace Trizbort.Export
         }
       }
 
-      private void AssignPrimaryPriority()
+      private void assignPrimaryPriority()
       {
-        m_primaryPriority = 0;
+        mPrimaryPriority = 0;
 
         switch (VisualCompassPoint)
         {
@@ -547,21 +524,21 @@ namespace Trizbort.Export
           case CompassPoint.NorthWest:
             if (SecondaryDirection == null)
             {
-              m_primaryPriority += 4;
+              mPrimaryPriority += 4;
             }
             else
             {
-              m_primaryPriority -= 2;
+              mPrimaryPriority -= 2;
             }
             break;
           default:
             if (SecondaryDirection == null)
             {
-              m_primaryPriority += 3;
+              mPrimaryPriority += 3;
             }
             else
             {
-              m_primaryPriority -= 1;
+              mPrimaryPriority -= 1;
             }
             break;
         }
@@ -595,20 +572,17 @@ namespace Trizbort.Export
         Location = location;
         Container = container;
         Debug.Assert(container == null || container.Location == location, "Thing's container is not located in the same room as the thing.");
-        if (container != null)
-        {
-          container.Contents.Add(this);
-        }
+        container?.Contents.Add(this);
         Indent = indent;
         Contents = new List<Thing>();
       }
 
       public string DisplayName { get; private set; }
       public string ExportName { get; private set; }
-      public Location Location { get; private set; }
+      public Location Location { get; }
       public Thing Container { get; private set; }
-      public int Indent { get; private set; }
-      public List<Thing> Contents { get; private set; }
+      public int Indent { get; }
+      public List<Thing> Contents { get; }
     }
   }
 }

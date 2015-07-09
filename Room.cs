@@ -36,32 +36,30 @@ namespace Trizbort
   /// <summary>
   ///   A room in the project.
   /// </summary>
-  internal class Room : Element, ISizeable
+  public class Room : Element, ISizeable
   {
-    private const CompassPoint DefaultObjectsPosition = CompassPoint.South;
-    private readonly List<string> m_descriptions = new List<string>();
-    private readonly TextBlock m_name = new TextBlock();
-    private readonly TextBlock m_subTitle = new TextBlock();
-    private readonly TextBlock m_objects = new TextBlock();
-    private bool m_isDark;
-    private CompassPoint m_objectsPosition = DefaultObjectsPosition;
+    private const CompassPoint DEFAULT_OBJECTS_POSITION = CompassPoint.South;
+    private readonly List<string> mDescriptions = new List<string>();
+    private readonly TextBlock mName = new TextBlock();
+    private readonly TextBlock mSubTitle = new TextBlock();
+    private readonly TextBlock mObjects = new TextBlock();
+    private bool mIsDark;
+    private CompassPoint mObjectsPosition = DEFAULT_OBJECTS_POSITION;
     // Added for linking connections when pasting
-    private Int32 m_oldID;
-    private Vector m_position;
+    private Vector mPosition;
     // Added for Room specific colors (White shows global color)
-    private Color m_roomborder = Color.Transparent;
-    private Color m_roomfill = Color.Transparent;
-    private Color m_roomlargetext = Color.Transparent;
-    private string m_RoomRegion;
-    private Color m_roomsmalltext = Color.Transparent;
-    private Color m_secondfill = Color.Transparent;
-    private String m_secondfilllocation = "Bottom";
-    private BorderDashStyle m_borderStyle = BorderDashStyle.Solid;
-    private Vector m_size;
+    private Color mRoomborder = Color.Transparent;
+    private Color mRoomfill = Color.Transparent;
+    private Color mRoomlargetext = Color.Transparent;
+    private string mRoomRegion;
+    private Color mRoomsmalltext = Color.Transparent;
+    private Color mSecondfill = Color.Transparent;
+    private string mSecondfilllocation = "Bottom";
+    private BorderDashStyle mBorderStyle = BorderDashStyle.Solid;
+    private Vector mSize;
     private const int MAX_OBJECTS=1000;
 
-    public Room(Project project)
-      : base(project)
+    public Room(Project project) : base(project)
     {
       Name = "Cave";
       Region = Trizbort.Region.DefaultRegion;
@@ -89,8 +87,7 @@ namespace Trizbort
 
     // Added this second constructor to be used when loading a room
     // This constructor is significantly faster as it doesn't look for gap in the element IDs
-    public Room(Project project, int TotalIDs)
-      : base(project, TotalIDs)
+    public Room(Project project, int totalIDs) : base(project, totalIDs)
     {
       Name = "Cave";
       Region = Trizbort.Region.DefaultRegion;
@@ -121,13 +118,13 @@ namespace Trizbort
     /// </summary>
     public string Name
     {
-      get { return m_name.Text; }
+      get { return mName.Text; }
       set
       {
         value = value ?? string.Empty;
-        if (m_name.Text != value)
+        if (mName.Text != value)
         {
-          m_name.Text = value;
+          mName.Text = value;
           RaiseChanged();
         }
       }
@@ -138,13 +135,13 @@ namespace Trizbort
     /// </summary>
     public string SubTitle
     {
-      get { return m_subTitle.Text; }
+      get { return mSubTitle.Text; }
       set
       {
         value = value ?? string.Empty;
-        if (m_subTitle.Text != value)
+        if (mSubTitle.Text != value)
         {
-          m_subTitle.Text = value;
+          mSubTitle.Text = value;
           RaiseChanged();
         }
       }
@@ -155,12 +152,12 @@ namespace Trizbort
     /// </summary>
     public bool IsDark
     {
-      get { return m_isDark; }
+      get { return mIsDark; }
       set
       {
-        if (m_isDark != value)
+        if (mIsDark != value)
         {
-          m_isDark = value;
+          mIsDark = value;
           RaiseChanged();
         }
       }
@@ -171,13 +168,13 @@ namespace Trizbort
     /// </summary>
     public string Objects
     {
-      get { return m_objects.Text; }
+      get { return mObjects.Text; }
       set
       {
         value = value ?? string.Empty;
-        if (m_objects.Text != value)
+        if (mObjects.Text != value)
         {
-          m_objects.Text = value;
+          mObjects.Text = value;
           RaiseChanged();
         }
       }
@@ -189,12 +186,12 @@ namespace Trizbort
     /// </summary>
     public CompassPoint ObjectsPosition
     {
-      get { return m_objectsPosition; }
+      get { return mObjectsPosition; }
       set
       {
-        if (m_objectsPosition != value)
+        if (mObjectsPosition != value)
         {
-          m_objectsPosition = value;
+          mObjectsPosition = value;
           RaiseChanged();
         }
       }
@@ -202,12 +199,12 @@ namespace Trizbort
 
     public BorderDashStyle BorderStyle
     {
-      get { return m_borderStyle; }
+      get { return mBorderStyle; }
       set
       {
-        if (m_borderStyle != value)
+        if (mBorderStyle != value)
         {
-          m_borderStyle = value;
+          mBorderStyle = value;
           RaiseChanged();
         }
       }
@@ -215,33 +212,26 @@ namespace Trizbort
 
     public string Region
     {
-      get { return m_RoomRegion; }
+      get { return mRoomRegion; }
       set
       {
-        if (m_RoomRegion != value)
+        if (mRoomRegion != value)
         {
-          m_RoomRegion = value;
+          mRoomRegion = value;
           RaiseChanged();
         }
       }
     }
 
-    public override Depth Depth
-    {
-      get { return Depth.Medium; }
-    }
-
-    public override bool HasDialog
-    {
-      get { return true; }
-    }
+    public override Depth Depth => Depth.Medium;
+    public override bool HasDialog => true;
 
     public bool IsConnected
     {
       get
       {
         // TODO: This is needlessly expensive
-        foreach (var element in Project.Current.Elements)
+        foreach (var element in Map.Elements)
         {
           if (!(element is Connection))
           {
@@ -269,28 +259,25 @@ namespace Trizbort
     {
       get
       {
-        if (m_descriptions.Count > 0)
+        if (mDescriptions.Count > 0)
         {
-          return m_descriptions[0];
+          return mDescriptions[0];
         }
         return null;
       }
     }
 
-    public bool HasDescription
-    {
-      get { return m_descriptions.Count > 0; }
-    }
+    public bool HasDescription => mDescriptions.Count > 0;
 
     // Added for Room specific colors
     public Color RoomFill
     {
-      get { return m_roomfill; }
+      get { return mRoomfill; }
       set
       {
-        if (m_roomfill != value)
+        if (mRoomfill != value)
         {
-          m_roomfill = value;
+          mRoomfill = value;
           RaiseChanged();
         }
       }
@@ -299,12 +286,12 @@ namespace Trizbort
     // Added for Room specific colors
     public Color SecondFill
     {
-      get { return m_secondfill; }
+      get { return mSecondfill; }
       set
       {
-        if (m_secondfill != value)
+        if (mSecondfill != value)
         {
-          m_secondfill = value;
+          mSecondfill = value;
           RaiseChanged();
         }
       }
@@ -313,12 +300,12 @@ namespace Trizbort
     // Added for Room specific colors
     public String SecondFillLocation
     {
-      get { return m_secondfilllocation; }
+      get { return mSecondfilllocation; }
       set
       {
-        if (m_secondfilllocation != value)
+        if (mSecondfilllocation != value)
         {
-          m_secondfilllocation = value;
+          mSecondfilllocation = value;
           RaiseChanged();
         }
       }
@@ -327,12 +314,12 @@ namespace Trizbort
     // Added for Room specific colors
     public Color RoomBorder
     {
-      get { return m_roomborder; }
+      get { return mRoomborder; }
       set
       {
-        if (m_roomborder != value)
+        if (mRoomborder != value)
         {
-          m_roomborder = value;
+          mRoomborder = value;
           RaiseChanged();
         }
       }
@@ -341,12 +328,12 @@ namespace Trizbort
     // Added for Room specific colors
     public Color RoomLargeText
     {
-      get { return m_roomlargetext; }
+      get { return mRoomlargetext; }
       set
       {
-        if (m_roomlargetext != value)
+        if (mRoomlargetext != value)
         {
-          m_roomlargetext = value;
+          mRoomlargetext = value;
           RaiseChanged();
         }
       }
@@ -355,85 +342,59 @@ namespace Trizbort
     // Added for Room specific colors
     public Color RoomSmallText
     {
-      get { return m_roomsmalltext; }
+      get { return mRoomsmalltext; }
       set
       {
-        if (m_roomsmalltext != value)
+        if (mRoomsmalltext != value)
         {
-          m_roomsmalltext = value;
+          mRoomsmalltext = value;
           RaiseChanged();
         }
       }
     }
 
     // Added for linking connections when pasting
-    public Int32 OldID
-    {
-      get { return m_oldID; }
-      set
-      {
-        if (m_oldID != value)
-        {
-          m_oldID = value;
-        }
-      }
-    }
+    public int OldID { get; set; }
 
-    public override Vector Position
+    public override sealed Vector Position
     {
-      get { return m_position; }
+      get { return mPosition; }
       set
       {
-        if (m_position != value)
+        if (mPosition != value)
         {
-          m_position = value;
+          mPosition = value;
           ArbitraryAutomappedPosition = false;
           RaiseChanged();
         }
       }
     }
 
-    public float X
-    {
-      get { return m_position.X; }
-    }
-
-    public float Y
-    {
-      get { return m_position.Y; }
-    }
+    public float X => mPosition.X;
+    public float Y => mPosition.Y;
 
     public Vector Size
     {
-      get { return m_size; }
+      get { return mSize; }
       set
       {
-        if (m_size != value)
+        if (mSize != value)
         {
-          m_size = value;
+          mSize = value;
           RaiseChanged();
         }
       }
     }
 
-    public float Width
-    {
-      get { return m_size.X; }
-    }
+    public float Width => mSize.X;
 
-    public float Height
-    {
-      get { return m_size.Y; }
-    }
+    public float Height => mSize.Y;
 
-    public Rect InnerBounds
-    {
-      get { return new Rect(Position, Size); }
-    }
+    public Rect InnerBounds => new Rect(Position, Size);
 
     public override string ToString()
     {
-      return string.Format("Room: {0}", Name);
+      return $"Room: {Name}";
     }
 
     public override string GetToolTipFooter()
@@ -448,7 +409,7 @@ namespace Trizbort
 
     public override string GetToolTipHeader()
     {
-      return string.Format("{0}{1}", Name, (!isDefaultRegion() ? string.Format(" ({0})", Region) : string.Empty));
+      return $"{Name}{(!isDefaultRegion() ? $" ({Region})" : string.Empty)}";
     }
 
     public override bool HasTooltip()
@@ -506,7 +467,7 @@ namespace Trizbort
 
     public override string GetToolTipText()
     {
-      var sText = string.Format("{0}", PrimaryDescription);
+      var sText = $"{PrimaryDescription}";
 
       return sText;
     }
@@ -523,26 +484,10 @@ namespace Trizbort
       var bottomLeft = InnerBounds.GetCorner(CompassPoint.SouthWest);
       var bottomRight = InnerBounds.GetCorner(CompassPoint.SouthEast);
 
-      var topCenter = InnerBounds.GetCorner(CompassPoint.North);
-      var rightCenter = InnerBounds.GetCorner(CompassPoint.East);
-      var bottomCenter = InnerBounds.GetCorner(CompassPoint.South);
-      var leftCenter = InnerBounds.GetCorner(CompassPoint.West);
-
       var top = new LineSegment(topLeft, topRight);
       var right = new LineSegment(topRight, bottomRight);
       var bottom = new LineSegment(bottomRight, bottomLeft);
       var left = new LineSegment(bottomLeft, topLeft);
-
-      var halfTopRight = new LineSegment(topCenter, topRight);
-      var halfBottomRight = new LineSegment(bottomRight, bottomCenter);
-      var centerVertical = new LineSegment(bottomCenter, topCenter);
-
-      var centerHorizontal = new LineSegment(leftCenter, rightCenter);
-      var halfRightBottom = new LineSegment(rightCenter, bottomRight);
-      var halfLeftBottom = new LineSegment(bottomLeft, leftCenter);
-
-      var slantUp = new LineSegment(bottomLeft, topRight);
-      var slantDown = new LineSegment(bottomRight, topLeft);
 
       context.LinesDrawn.Add(top);
       context.LinesDrawn.Add(right);
@@ -613,11 +558,9 @@ namespace Trizbort
           graphics.DrawPath(brushSelected, pathSelected);
         }
 
-      var brush = context.Selected ? palette.BorderBrush : palette.FillBrush;
-
       // get region color
       var regionColor = Settings.Regions.FirstOrDefault(p => p.RegionName.Equals(Region, StringComparison.OrdinalIgnoreCase)) ?? Settings.Regions.FirstOrDefault(p => p.RegionName.Equals(Trizbort.Region.DefaultRegion, StringComparison.OrdinalIgnoreCase));
-      brush = new SolidBrush(regionColor.RColor);
+      Brush brush = new SolidBrush(regionColor.RColor);
 
       // Room specific fill brush (White shows global color)
       if (RoomFill != Color.Transparent ) { brush = new SolidBrush(RoomFill); }
@@ -686,8 +629,6 @@ namespace Trizbort
               Drawing.AddLine(secondPath, top, random);
               Drawing.AddLine(secondPath, halfLeftTop, random);
               break;
-            default:
-              break;
           }
           // Draw the second fill over the first
           graphics.DrawPath(brush, secondPath);
@@ -727,9 +668,9 @@ namespace Trizbort
       {
         if (!Settings.DebugDisableTextRendering)
         {
-          var actualTextRect = m_name.Draw(graphics, font, roombrush, textBounds.Position, textBounds.Size, XStringFormats.Center);
+          var actualTextRect = mName.Draw(graphics, font, roombrush, textBounds.Position, textBounds.Size, XStringFormats.Center);
           var subTitleBounds = new Rect(actualTextRect.X, (actualTextRect.Y + actualTextRect.Height-4 ), actualTextRect.Width, actualTextRect.Height);
-          m_subTitle.Draw(graphics, Settings.LineFont, roombrush, subTitleBounds.Position, subTitleBounds.Size, XStringFormats.Center);
+          mSubTitle.Draw(graphics, Settings.LineFont, roombrush, subTitleBounds.Position, subTitleBounds.Size, XStringFormats.Center);
         }
       }
 
@@ -750,22 +691,22 @@ namespace Trizbort
       if (!string.IsNullOrEmpty(Objects))
       {
         var format = new XStringFormat();
-        var pos = expandedBounds.GetCorner(m_objectsPosition);
-        if (!Drawing.SetAlignmentFromCardinalOrOrdinalDirection(format, m_objectsPosition))
+        var pos = expandedBounds.GetCorner(mObjectsPosition);
+        if (!Drawing.SetAlignmentFromCardinalOrOrdinalDirection(format, mObjectsPosition))
         {
           // object list appears inside the room below its name
           format.LineAlignment = XLineAlignment.Far;
           format.Alignment = XStringAlignment.Near;
-          var height = InnerBounds.Height/2 - font.Height/2;
+          var height = InnerBounds.Height/2f - font.Height/2f;
           var bounds = new Rect(InnerBounds.Left + Settings.ObjectListOffsetFromRoom, InnerBounds.Bottom - height, InnerBounds.Width - Settings.ObjectListOffsetFromRoom, height - Settings.ObjectListOffsetFromRoom);
           brush = (bUseObjectRoomBrush ? new SolidBrush(RoomSmallText) : roombrush);
           if (bounds.Width > 0 && bounds.Height > 0)
           {
-            m_objects.Draw(graphics, font, brush, bounds.Position, bounds.Size, format);
+            mObjects.Draw(graphics, font, brush, bounds.Position, bounds.Size, format);
           }
           drawnObjectList = true;
         }
-        else if (m_objectsPosition == CompassPoint.North || m_objectsPosition == CompassPoint.South)
+        else if (mObjectsPosition == CompassPoint.North || mObjectsPosition == CompassPoint.South)
         {
           pos.X += Settings.ObjectListOffsetFromRoom;
         }
@@ -774,11 +715,11 @@ namespace Trizbort
         {
           if (!Settings.DebugDisableTextRendering)
           {
-            var aObjects = m_objects.Text.Split('\n');
+            var aObjects = mObjects.Text.Split('\n');
             var tString = aObjects.Take(MAX_OBJECTS).Aggregate(string.Empty, (current, aObject) => current + (aObject + "\n"));
             var displayObjects = new TextBlock() {Text = tString};
 
-            var block = displayObjects.Draw(graphics, font, brush, pos, Vector.Zero, format);
+            displayObjects.Draw(graphics, font, brush, pos, Vector.Zero, format);
 
           }
         }
@@ -891,10 +832,10 @@ namespace Trizbort
 
       // Up to this point was added to turn colors to Hex code for xmpl saving/loading
 
-      if (!string.IsNullOrEmpty(Objects) || ObjectsPosition != DefaultObjectsPosition)
+      if (!string.IsNullOrEmpty(Objects) || ObjectsPosition != DEFAULT_OBJECTS_POSITION)
       {
         scribe.StartElement("objects");
-        if (ObjectsPosition != DefaultObjectsPosition)
+        if (ObjectsPosition != DEFAULT_OBJECTS_POSITION)
         {
           scribe.Attribute("at", ObjectsPosition);
         }
@@ -953,7 +894,7 @@ namespace Trizbort
       var connections = new List<Connection>();
 
       // TODO: This is needlessly expensive, traversing as it does the entire project's element list.
-      foreach (var element in Project.Current.Elements.OfType<Connection>())
+      foreach (var element in Map.Elements.OfType<Connection>())
       {
         var connection = element;
         foreach (var vertex in connection.VertexList)
@@ -986,9 +927,9 @@ namespace Trizbort
 
     public void ClearDescriptions()
     {
-      if (m_descriptions.Count > 0)
+      if (mDescriptions.Count > 0)
       {
-        m_descriptions.Clear();
+        mDescriptions.Clear();
         RaiseChanged();
       }
     }
@@ -1001,13 +942,13 @@ namespace Trizbort
         return;
       }
 
-      if (m_descriptions.Any(existing => existing == description))
+      if (mDescriptions.Any(existing => existing == description))
       {
         return;
       }
 
       // we don't have this (non-empty) description already; add it
-      m_descriptions.Add(description);
+      mDescriptions.Add(description);
       RaiseChanged();
     }
 
@@ -1016,10 +957,10 @@ namespace Trizbort
       if (string.IsNullOrEmpty(description))
       {
         // match a lack of description if we have no descriptions
-        return m_descriptions.Count == 0;
+        return mDescriptions.Count == 0;
       }
 
-      return m_descriptions.Any(existing => existing == description);
+      return mDescriptions.Any(existing => existing == description);
 
       // no match
     }
@@ -1058,9 +999,9 @@ namespace Trizbort
       clipboardText += colorValue;
 
 
-      if (!string.IsNullOrEmpty(Objects) || ObjectsPosition != DefaultObjectsPosition)
+      if (!string.IsNullOrEmpty(Objects) || ObjectsPosition != DEFAULT_OBJECTS_POSITION)
       {
-        var objectsDirection = "";
+        string objectsDirection;
         CompassPointHelper.ToName(ObjectsPosition, out objectsDirection);
         clipboardText += ":" + objectsDirection + ":";
         if (!string.IsNullOrEmpty(Objects))
@@ -1105,7 +1046,7 @@ namespace Trizbort
         Room = room;
       }
 
-      public CompassPoint CompassPoint { get; private set; }
+      public CompassPoint CompassPoint { get; }
 
       public override string ID
       {
