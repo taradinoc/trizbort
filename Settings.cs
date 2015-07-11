@@ -555,10 +555,10 @@ namespace Trizbort
           dialog.Color[index] = Color[index];
         }
 
-        dialog.Title = Project.Current.Title;
-        dialog.Author = Project.Current.Author;
-        dialog.Description = Project.Current.Description;
-        dialog.History = Project.Current.History;
+        dialog.Title = ApplicationState.CurrentProject.Title;
+        dialog.Author = ApplicationState.CurrentProject.Author;
+        dialog.Description = ApplicationState.CurrentProject.Description;
+        dialog.History = ApplicationState.CurrentProject.History;
         dialog.LargeFont = LargeFont;
         dialog.SmallFont = SmallFont;
         dialog.LineFont = LineFont;
@@ -582,10 +582,10 @@ namespace Trizbort
           {
             Color[index] = dialog.Color[index];
           }
-          Project.Current.Title = dialog.Title;
-          Project.Current.Author = dialog.Author;
-          Project.Current.Description = dialog.Description;
-          Project.Current.History = dialog.History;
+          ApplicationState.CurrentProject.Title = dialog.Title;
+          ApplicationState.CurrentProject.Author = dialog.Author;
+          ApplicationState.CurrentProject.Description = dialog.Description;
+          ApplicationState.CurrentProject.History = dialog.History;
           LargeFont = dialog.LargeFont;
           SmallFont = dialog.SmallFont;
           LineFont = dialog.LineFont;

@@ -99,7 +99,7 @@ namespace Trizbort
     Room IAutomapCanvas.CreateRoom(Room existing, string name)
     {
       // start by placing the room at the origin
-      var room = new Room(Project.Current) {Name = name};
+      var room = new Room(ApplicationState.CurrentProject) {Name = name};
 
       if (existing != null)
       {
@@ -154,7 +154,7 @@ namespace Trizbort
         return null;
       }
 
-      var room = new Room(Project.Current) {Name = roomName};
+      var room = new Room(ApplicationState.CurrentProject) {Name = roomName};
       if (line != roomName)
       {
         room.SubTitle = line.Replace(roomName, "");

@@ -71,22 +71,22 @@ namespace Trizbort.Export
       string ss;
       using (var writer = new StringWriter())
       {
-        var title = Project.Current.Title;
+        var title = ApplicationState.CurrentProject.Title;
         if (string.IsNullOrEmpty(title))
         {
-          title = PathHelper.SafeGetFilenameWithoutExtension(Project.Current.FileName);
+          title = PathHelper.SafeGetFilenameWithoutExtension(ApplicationState.CurrentProject.FileName);
           if (string.IsNullOrEmpty(title))
           {
             title = "A Trizbort Map";
           }
         }
-        var author = Project.Current.Author;
+        var author = ApplicationState.CurrentProject.Author;
         if (string.IsNullOrEmpty(author))
         {
           author = "A Trizbort User";
         }
 
-        ExportHeader(writer, title, author, Project.Current.Description ?? string.Empty);
+        ExportHeader(writer, title, author, ApplicationState.CurrentProject.Description ?? string.Empty);
         prepareContent();
         ExportContent(writer);
 
@@ -101,22 +101,22 @@ namespace Trizbort.Export
     {
       using (var writer = Create(fileName))
       {
-        var title = Project.Current.Title;
+        var title = ApplicationState.CurrentProject.Title;
         if (string.IsNullOrEmpty(title))
         {
-          title = PathHelper.SafeGetFilenameWithoutExtension(Project.Current.FileName);
+          title = PathHelper.SafeGetFilenameWithoutExtension(ApplicationState.CurrentProject.FileName);
           if (string.IsNullOrEmpty(title))
           {
             title = "A Trizbort Map";
           }
         }
-        var author = Project.Current.Author;
+        var author = ApplicationState.CurrentProject.Author;
         if (string.IsNullOrEmpty(author))
         {
           author = "A Trizbort User";
         }
 
-        ExportHeader(writer, title, author, Project.Current.Description ?? string.Empty);
+        ExportHeader(writer, title, author, ApplicationState.CurrentProject.Description ?? string.Empty);
         prepareContent();
         ExportContent(writer);
       }
@@ -150,29 +150,26 @@ namespace Trizbort.Export
         mapExportNameToRoom.Add(reservedWord, null);
       }
 
-      foreach (var map in Project.Maps)
+      foreach (var element in ApplicationState.CurrentProject.Map.Elements)
       {
-        foreach (var element in map.Elements)
+        if (element.GetType() != typeof (Room)) continue;
+
+        var room = (Room) element;
+
+        // assign each room a unique export name.
+        var exportName = GetExportName(room, null);
+        if (exportName == string.Empty)
+          exportName = "object";
+        var index = 2;
+        while (mapExportNameToRoom.ContainsKey(exportName))
         {
-          if (element.GetType() != typeof (Room)) continue;
-
-          var room = (Room) element;
-
-          // assign each room a unique export name.
-          var exportName = GetExportName(room, null);
-          if (exportName == string.Empty)
-            exportName = "object";
-          var index = 2;
-          while (mapExportNameToRoom.ContainsKey(exportName))
-          {
-            exportName = GetExportName(room, index++);
-          }
-
-          mapExportNameToRoom[exportName] = room;
-          var location = new Location(room, exportName);
-          LocationsInExportOrder.Add(location);
-          mMapRoomToLocation[room] = location;
+          exportName = GetExportName(room, index++);
         }
+
+        mapExportNameToRoom[exportName] = room;
+        var location = new Location(room, exportName);
+        LocationsInExportOrder.Add(location);
+        mMapRoomToLocation[room] = location;
       }
     }
 
@@ -182,7 +179,7 @@ namespace Trizbort.Export
       // file them by room, and assign them priorities.
       // don't decide yet which exit is "the" from a room in a particular direction,
       // since we need to compare all a room's exits for that.
-      foreach (var connection in Project.Maps.SelectMany(map => map.Elements.Where(element => element.GetType() == typeof (Connection)).Cast<Connection>())) {
+      foreach (var connection in ApplicationState.CurrentProject.Map.Elements.Where(element => element.GetType() == typeof (Connection)).Cast<Connection>()) {
         CompassPoint sourceCompassPoint, targetCompassPoint;
         var sourceRoom = connection.GetSourceRoom(out sourceCompassPoint);
         var targetRoom = connection.GetTargetRoom(out targetCompassPoint);

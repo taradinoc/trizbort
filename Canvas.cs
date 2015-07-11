@@ -97,7 +97,7 @@ namespace Trizbort
       mRecomputeTimer = new Timer(onRecomputeTimerTick);
 
       Project.ProjectChanged += onProjectChanged;
-      onProjectChanged(this, new ProjectChangedEventArgs(null, Project.Current));
+      onProjectChanged(this, new ProjectChangedEventArgs(null, ApplicationState.CurrentProject));
 
       Settings.Changed += onSettingsChanged;
       onSettingsChanged(this, EventArgs.Empty);
@@ -428,7 +428,7 @@ namespace Trizbort
         room.ObjectsPosition = mNewRoomObjectsPosition;
       }
       e.Item.Changed += onElementChanged;
-      Project.Current.IsDirty = true;
+      ApplicationState.CurrentProject.IsDirty = true;
       requestRecomputeSmartSegments();
       Invalidate();
     }
@@ -440,7 +440,7 @@ namespace Trizbort
       endDrag();
       updateDragHover(PointToClient(MousePosition));
 
-      Project.Current.IsDirty = true;
+      ApplicationState.CurrentProject.IsDirty = true;
       e.Item.Changed -= onElementChanged;
       requestRecomputeSmartSegments();
       Invalidate();
@@ -459,7 +459,7 @@ namespace Trizbort
         setConnectionDefaultsFrom(connection);
       }
       Invalidate();
-      Project.Current.IsDirty = true;
+      ApplicationState.CurrentProject.IsDirty = true;
       requestRecomputeSmartSegments();
     }
 
@@ -1532,7 +1532,7 @@ namespace Trizbort
         else
         {
           // new room entirely
-          var newRoom = new Room(Project.Current)
+          var newRoom = new Room(ApplicationState.CurrentProject)
           {
             Position = new Vector(centerOfNewRoom.X - room.Width/2, centerOfNewRoom.Y - room.Height/2), Region = room.Region,
             Size = room.Size
@@ -1573,7 +1573,7 @@ namespace Trizbort
     {
       var vertexOne = new Vertex(roomOne.PortAt(compassPointOne));
       var vertexTwo = new Vertex(roomTwo.PortAt(compassPointTwo));
-      var connection = new Connection(Project.Current, vertexOne, vertexTwo)
+      var connection = new Connection(ApplicationState.CurrentProject, vertexOne, vertexTwo)
       {
         Style = NewConnectionStyle,
         Flow = NewConnectionFlow
@@ -1775,12 +1775,12 @@ namespace Trizbort
         // Only from non-moveable ports, until we fix docking.
         // See also DoDragMovePort().
         // Updated to ignore ID gaps. ID gaps are resolved on load
-        connection = new Connection(Project.Current, new Vertex(hoverPort), new Vertex(hoverPort));
+        connection = new Connection(ApplicationState.CurrentProject, new Vertex(hoverPort), new Vertex(hoverPort));
       }
       else
       {
         var pos = Settings.Snap(canvasPos);
-        connection = new Connection(Project.Current, new Vertex(pos), new Vertex(pos));
+        connection = new Connection(ApplicationState.CurrentProject, new Vertex(pos), new Vertex(pos));
       }
       connection.Style = NewConnectionStyle;
       connection.Flow = NewConnectionFlow;
@@ -1797,7 +1797,7 @@ namespace Trizbort
     public void AddRoom(bool atCursor, bool insertRoom = false)
     {
       // Changed this to ignore ID gaps. ID gaps are resolved on load
-      var room = new Room(Project.Current) {Size = mNewRoomSize};
+      var room = new Room(ApplicationState.CurrentProject) {Size = mNewRoomSize};
 
       Vector pos;
       if (atCursor && ClientRectangle.Contains(PointToClient(MousePosition)))
@@ -2718,7 +2718,7 @@ namespace Trizbort
                 if (elementProperties[0] == "line")
                 {
                   // Create the new connection
-                  var currentConnection = new Connection(Project.Current);
+                  var currentConnection = new Connection(ApplicationState.CurrentProject);
                   Map.Elements.Add(currentConnection);
 
                   // Set the connection style

@@ -4,57 +4,22 @@ namespace Trizbort
 {
   public static class MapStatistics
   {
-    public static int NumberOfRooms
-    {
-      get { return Project.Maps.Sum(map => map.Elements.OfType<Room>().Count()); }
-    }
+    public static int NumberOfRooms => ApplicationState.CurrentProject.Map.Elements.OfType<Room>().Count();
+    public static int NumberOfFloatingRooms => ApplicationState.CurrentProject.Map.Elements.OfType<Room>().Count(p => p.GetConnections().Count == 0);
+    public static int NumberOfRoomsWithObjects => ApplicationState.CurrentProject.Map.Elements.OfType<Room>().Count(p => p.ListOfObjects().Count > 0);
+    public static int NumberOfTotalObjectsInRooms => ApplicationState.CurrentProject.Map.Elements.OfType<Room>().ToList().Sum(p => p.ListOfObjects().Count);
+    public static int NumberOfConnections => ApplicationState.CurrentProject.Map.Elements.OfType<Connection>().Count();
+    public static int NumberOfDanglingConnections => ApplicationState.CurrentProject.Map.Elements.OfType<Connection>().Count(p => p.GetSourceRoom() == null || p.GetTargetRoom() == null);
 
-    public static int NumberOfFloatingRooms
+    public static int NumberOfLoopingConnections => ApplicationState.CurrentProject.Map.Elements.OfType<Connection>().Count(p =>
     {
-      get { return Project.Maps.Sum(map => map.Elements.OfType<Room>().Count(p => p.GetConnections().Count == 0)); }
-    }
+      var sourceRoom = p.GetSourceRoom();
+      var targetRoom = p.GetTargetRoom();
+      return ((sourceRoom != null && targetRoom != null) && (sourceRoom == targetRoom));
+    });
 
-    public static int NumberOfRoomsWithObjects
-    {
-      get { return Project.Maps.Sum(map => map.Elements.OfType<Room>().Count(p => p.ListOfObjects().Count > 0)); }
-    }
+    public static int NumberOfRegions => Settings.Regions.Count(p=>p.RegionName != Region.DefaultRegion);
 
-    public static int NumberOfTotalObjectsInRooms
-    {
-      get { return Project.Maps.Sum(map => map.Elements.OfType<Room>().ToList().Sum(p => p.ListOfObjects().Count)); }
-    }
-
-    public static int NumberOfConnections
-    {
-      get { return Project.Maps.Sum(map=>map.Elements.OfType<Connection>().Count()); }
-    }
-
-    public static int NumberOfDanglingConnections
-    {
-      get { return Project.Maps.Sum(map=>map.Elements.OfType<Connection>().Count(p => p.GetSourceRoom() == null || p.GetTargetRoom() == null)); }
-    }
-
-    public static int NumberOfLoopingConnections
-    {
-      get
-      {
-        return Project.Maps.Sum(map=>map.Elements.OfType<Connection>().Count(p =>
-        {
-          var sourceRoom = p.GetSourceRoom();
-          var targetRoom = p.GetTargetRoom();
-          return ((sourceRoom != null && targetRoom != null) && (sourceRoom == targetRoom));
-        }));
-      }
-    }
-
-    public static int NumberOfRegions
-    {
-      get { return Settings.Regions.Count(p=>p.RegionName != Region.DefaultRegion); }
-    }
-
-    public static int NumberOfRoomsInRegion(string pRegion)
-    {
-      return Project.Maps.Sum(map=>map.Elements.OfType<Room>().Count(p => p.Region == pRegion));
-    }
+    public static int NumberOfRoomsInRegion(string pRegion) => ApplicationState.CurrentProject.Map.Elements.OfType<Room>().Count(p => p.Region == pRegion);
   }
 }

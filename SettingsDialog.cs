@@ -463,7 +463,7 @@ namespace Trizbort
       var original = pOld;
       var newname = pNew;
 
-      foreach (var tRoom in Project.Maps.SelectMany(map => map.Elements.OfType<Room>().Where(tRoom => tRoom.Region == original))) {
+      foreach (var tRoom in ApplicationState.CurrentProject.Map.Elements.OfType<Room>().Where(tRoom => tRoom.Region == original)) {
         tRoom.Region = newname;
       }
     }

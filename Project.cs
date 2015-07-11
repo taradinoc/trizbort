@@ -35,26 +35,25 @@ namespace Trizbort
     public static readonly string FilterString = "Trizbort Map Files|*.trizbort";
     private static Project  mCurrent = new Project();
     private string mFileName = string.Empty;
-    public static List<Map> Maps { get; set; }
+    public Map Map { get; set; }
 
     public Project()
     {
-      Maps = new List<Map>();
     }
 
-    public static Project Current
-    {
-      get { return mCurrent; }
-      set
-      {
-        if (mCurrent != value)
-        {
-          var oldProject = mCurrent;
-          mCurrent = value;
-          raiseProjectChanged(oldProject, mCurrent);
-        }
-      }
-    }
+//    public static Project Current
+//    {
+//      get { return mCurrent; }
+//      set
+//      {
+//        if (mCurrent != value)
+//        {
+//          var oldProject = mCurrent;
+//          mCurrent = value;
+//          raiseProjectChanged(oldProject, mCurrent);
+//        }
+//      }
+//    }
 
     public bool IsDirty { get; set; }
     public string Title { get; set; }
@@ -107,15 +106,12 @@ namespace Trizbort
     /// <returns></returns>
     public bool FindElement(int id, out Element element)
     {
-      foreach (var map in Maps)
+      foreach (var existing in Map.Elements)
       {
-        foreach (var existing in map.Elements)
+        if (existing.ID == id)
         {
-          if (existing.ID == id)
-          {
-            element = existing;
-            return true;
-          }
+          element = existing;
+          return true;
         }
       }
       element = null;
@@ -154,7 +150,7 @@ namespace Trizbort
         var xmlMap = root["map"];
 
         var map = new Map {Name = xmlMap.Attribute("Name")?.Text};
-        Maps.Add(map);
+        Map = map;
 
         // get map name if it has one.
         if (Version.CompareTo(new Version(1, 6, 0, 0)) < 0)
@@ -244,17 +240,14 @@ namespace Trizbort
             scribe.Element("history", History);
           }
           scribe.EndElement();
-          foreach (var map in Maps)
-          {
-            scribe.StartElement("map");
-            scribe.Attribute("name", map.Name);
+          scribe.StartElement("map");
+          scribe.Attribute("name", Map.Name);
 
-            foreach (var element in map.Elements)
-            {
-              saveElement(scribe, element);
-            }
-            scribe.EndElement();
+          foreach (var element in Map.Elements)
+          {
+            saveElement(scribe, element);
           }
+          scribe.EndElement();
           scribe.StartElement("settings");
           Settings.Save(scribe);
           scribe.EndElement();
